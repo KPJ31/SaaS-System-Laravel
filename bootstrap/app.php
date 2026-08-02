@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => App\Http\Middleware\RoleMiddleware::class,
             'company.approved' => App\Http\Middleware\CompanyApprovedMiddleware::class,
+            'employee.active' => App\Http\Middleware\EmployeeActiveMiddleware::class,
             'subscription.active' => App\Http\Middleware\SubscriptionActiveMiddleware::class,
         ]);
     })

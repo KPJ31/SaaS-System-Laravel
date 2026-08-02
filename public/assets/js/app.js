@@ -335,3 +335,55 @@ if (window.Chart && window.elevanixCompanyCharts) {
     chart('[data-chart="companyProjectStatus"]', data.projectStatusLabels, data.projectStatusValues);
     chart('[data-chart="companyTaskStatus"]', data.taskStatusLabels, data.taskStatusValues);
 }
+
+document.querySelectorAll('[data-active-timer]').forEach((timer) => {
+    const output = timer.querySelector('[data-timer-output]');
+    const startedAt = new Date(timer.dataset.startedAt);
+
+    function renderTimer() {
+        const seconds = Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000));
+        const hours = String(Math.floor(seconds / 3600)).padStart(2, '0');
+        const minutes = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+        const remaining = String(seconds % 60).padStart(2, '0');
+        if (output) {
+            output.textContent = `${hours}:${minutes}:${remaining}`;
+        }
+    }
+
+    renderTimer();
+    setInterval(renderTimer, 1000);
+});
+
+if (window.Chart && window.elevanixEmployeeCharts) {
+    const data = window.elevanixEmployeeCharts;
+    const colors = ['#6D28D9', '#8B5CF6', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6'];
+
+    const weekly = document.querySelector('[data-chart="employeeWeeklyHours"]');
+    if (weekly) {
+        new Chart(weekly, {
+            type: 'bar',
+            data: { labels: data.weeklyLabels, datasets: [{ label: 'Hours', data: data.weeklyHours, backgroundColor: '#6D28D9' }] },
+            options: { responsive: true, plugins: { legend: { display: false } } },
+        });
+    }
+
+    const status = document.querySelector('[data-chart="employeeTaskStatus"]');
+    if (status) {
+        new Chart(status, {
+            type: 'doughnut',
+            data: { labels: data.taskStatusLabels, datasets: [{ data: data.taskStatusValues, backgroundColor: colors }] },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+        });
+    }
+}
+
+if (window.Chart && window.elevanixEmployeePerformance) {
+    const canvas = document.querySelector('[data-chart="employeePerformance"]');
+    if (canvas) {
+        new Chart(canvas, {
+            type: 'line',
+            data: { labels: window.elevanixEmployeePerformance.labels, datasets: [{ label: 'Completed tasks', data: window.elevanixEmployeePerformance.values, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.12)', tension: 0.35, fill: true }] },
+            options: { responsive: true, plugins: { legend: { display: false } } },
+        });
+    }
+}

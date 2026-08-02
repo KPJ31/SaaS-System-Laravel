@@ -864,6 +864,64 @@ img {
     color: #075985;
 }
 
+.priority-badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.priority-low {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.priority-medium {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.priority-high {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.priority-urgent {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.timer-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-color: #e9d5ff;
+    background: #f5f3ff;
+}
+
+.timer-card strong,
+.timer-card span {
+    display: block;
+}
+
+.timer-card span {
+    color: #6b7280;
+}
+
+.timer-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.timer-actions > strong {
+    color: #4c1d95;
+    font-size: 22px;
+}
+
 .empty-cell {
     padding: 26px !important;
     color: #64748b !important;

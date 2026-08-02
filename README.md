@@ -167,9 +167,17 @@ Company Admin:
 
 Employee:
 
-- Employee dashboard
-- Assigned task overview
-- Recent work session overview
+- Employee dashboard with metrics, charts, active timer, notifications, and activity
+- My Projects list and details with assigned task and document visibility
+- My Tasks list, details, progress updates, status workflow, comments, and file uploads
+- Start/stop work timer with one active timer per employee
+- Work sessions list with filters, totals, and CSV export
+- My Documents list with project/task/date/type filters
+- Leave requests with create, edit pending, cancel pending, and status tracking
+- Personal performance score and trend chart
+- Notifications with mark one/all read
+- Activity history scoped to the employee
+- Profile update and secure password change
 
 ## Database Tables
 
@@ -184,6 +192,9 @@ Core application tables:
 - `project_user`
 - `tasks`
 - `work_sessions`
+- `task_comments`
+- `work_files`
+- `leave_requests`
 - `payments`
 - `invoices`
 - `invoice_items`
@@ -305,8 +316,8 @@ php artisan test
 
 Current verified result:
 
-- 38 tests passed
-- 98 assertions passed
+- 48 tests passed
+- 123 assertions passed
 
 The test environment uses in-memory SQLite from `phpunit.xml`.
 
@@ -326,6 +337,13 @@ Test coverage includes:
 - Cross-company access denial
 - Employee access to assigned own-company work
 - Work timer duplicate prevention and stop duration
+- Employee dashboard access
+- Employee task isolation inside and across companies
+- Employee work timer start/stop and duplicate active timer prevention
+- Employee task submission for review
+- Employee leave request creation
+- Employee performance page access
+- Suspended employee dashboard blocking
 - System settings storage
 
 ## Reports And Documentation
@@ -360,8 +378,6 @@ Project documentation files:
 - Subscription billing integration
 - Plan upgrade/downgrade workflow
 - Subscription expiry reminders
-- Project document uploads/downloads
-- More dashboard charts
 - Branded email templates
 - Wider audit coverage
 - Two-factor authentication

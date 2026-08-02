@@ -64,6 +64,16 @@ class User extends Authenticatable
         return $this->hasMany(WorkSession::class);
     }
 
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function taskComments(): HasMany
+    {
+        return $this->hasMany(TaskComment::class);
+    }
+
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);

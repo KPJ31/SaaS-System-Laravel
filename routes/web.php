@@ -23,6 +23,16 @@ use App\Http\Controllers\CompanyAdmin\SettingController as CompanyAdminSettingCo
 use App\Http\Controllers\CompanyAdmin\TaskController as CompanyAdminTaskController;
 use App\Http\Controllers\CompanyAdmin\WorkSessionController as CompanyAdminWorkSessionController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
+use App\Http\Controllers\Employee\ActivityController as EmployeeActivityController;
+use App\Http\Controllers\Employee\DocumentController as EmployeeDocumentController;
+use App\Http\Controllers\Employee\LeaveRequestController as EmployeeLeaveRequestController;
+use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
+use App\Http\Controllers\Employee\PasswordController as EmployeePasswordController;
+use App\Http\Controllers\Employee\PerformanceController as EmployeePerformanceController;
+use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController;
+use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
+use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
+use App\Http\Controllers\Employee\WorkSessionController as EmployeeWorkSessionController;
 use App\Http\Controllers\SuperAdmin\CompanyController;
 use App\Http\Controllers\SuperAdmin\CompanyRequestController;
 use App\Http\Controllers\SuperAdmin\CompanySubscriptionController;
@@ -173,6 +183,31 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
     Route::put('/profile/password', [CompanyAdminProfileController::class, 'updatePassword'])->name('profile.password');
 });
 
-Route::middleware(['auth', 'role:employee', 'company.approved', 'subscription.active'])->prefix('employee')->name('employee.')->group(function (): void {
+Route::middleware(['auth', 'role:employee', 'employee.active', 'company.approved', 'subscription.active'])->prefix('employee')->name('employee.')->group(function (): void {
     Route::get('/dashboard', EmployeeDashboardController::class)->name('dashboard');
+    Route::get('/projects', [EmployeeProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/{project}', [EmployeeProjectController::class, 'show'])->name('projects.show');
+    Route::get('/tasks', [EmployeeTaskController::class, 'index'])->name('tasks.index');
+    Route::get('/tasks/{task}', [EmployeeTaskController::class, 'show'])->name('tasks.show');
+    Route::post('/tasks/{task}/start', [EmployeeTaskController::class, 'start'])->name('tasks.start');
+    Route::post('/tasks/{task}/stop', [EmployeeTaskController::class, 'stop'])->name('tasks.stop');
+    Route::patch('/tasks/{task}/progress', [EmployeeTaskController::class, 'progress'])->name('tasks.progress');
+    Route::patch('/tasks/{task}/status', [EmployeeTaskController::class, 'status'])->name('tasks.status');
+    Route::post('/tasks/{task}/comments', [EmployeeTaskController::class, 'comment'])->name('tasks.comments.store');
+    Route::post('/tasks/{task}/files', [EmployeeTaskController::class, 'upload'])->name('tasks.files.store');
+    Route::get('/files/{file}/download', [EmployeeTaskController::class, 'download'])->name('files.download');
+    Route::get('/work-sessions', [EmployeeWorkSessionController::class, 'index'])->name('work-sessions.index');
+    Route::get('/work-sessions/export/csv', [EmployeeWorkSessionController::class, 'export'])->name('work-sessions.export');
+    Route::get('/documents', [EmployeeDocumentController::class, 'index'])->name('documents.index');
+    Route::resource('leave-requests', EmployeeLeaveRequestController::class)->except(['show', 'destroy']);
+    Route::post('/leave-requests/{leaveRequest}/cancel', [EmployeeLeaveRequestController::class, 'cancel'])->name('leave-requests.cancel');
+    Route::get('/performance', EmployeePerformanceController::class)->name('performance.index');
+    Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notification}/read', [EmployeeNotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [EmployeeNotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::get('/activity-history', [EmployeeActivityController::class, 'index'])->name('activity.index');
+    Route::get('/profile', [EmployeeProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [EmployeeProfileController::class, 'update'])->name('profile.update');
+    Route::get('/password', [EmployeePasswordController::class, 'edit'])->name('password.edit');
+    Route::put('/password', [EmployeePasswordController::class, 'update'])->name('password.update');
 });

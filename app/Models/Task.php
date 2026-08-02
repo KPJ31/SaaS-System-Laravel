@@ -26,6 +26,7 @@ class Task extends Model
         'estimated_hours',
         'progress',
         'task_type',
+        'blocked_reason',
     ];
 
     protected function casts(): array
@@ -56,5 +57,15 @@ class Task extends Model
     public function workSessions(): HasMany
     {
         return $this->hasMany(WorkSession::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(TaskComment::class);
+    }
+
+    public function files(): HasMany
+    {
+        return $this->hasMany(WorkFile::class);
     }
 }

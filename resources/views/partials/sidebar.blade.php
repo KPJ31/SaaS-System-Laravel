@@ -39,6 +39,17 @@
         ],
         default => [
             ['Dashboard', 'fa-gauge-high', route('employee.dashboard'), request()->routeIs('employee.dashboard'), null],
+            ['My Projects', 'fa-diagram-project', route('employee.projects.index'), request()->routeIs('employee.projects.*'), null],
+            ['My Tasks', 'fa-list-check', route('employee.tasks.index'), request()->routeIs('employee.tasks.*'), \App\Models\Task::where('company_id', auth()->user()->company_id)->where('assignee_id', auth()->id())->whereIn('status', ['todo', 'assigned', 'in_progress', 'paused', 'blocked'])->count()],
+            ['Work Timer', 'fa-stopwatch', route('employee.tasks.index'), request()->routeIs('employee.tasks.show'), \App\Models\WorkSession::where('company_id', auth()->user()->company_id)->where('user_id', auth()->id())->whereNull('ended_at')->count()],
+            ['Work Sessions', 'fa-clock', route('employee.work-sessions.index'), request()->routeIs('employee.work-sessions.*'), null],
+            ['My Documents', 'fa-folder-open', route('employee.documents.index'), request()->routeIs('employee.documents.*'), null],
+            ['Leave Requests', 'fa-calendar-check', route('employee.leave-requests.index'), request()->routeIs('employee.leave-requests.*'), \App\Models\LeaveRequest::where('company_id', auth()->user()->company_id)->where('user_id', auth()->id())->where('status', 'pending')->count()],
+            ['Performance', 'fa-chart-line', route('employee.performance.index'), request()->routeIs('employee.performance.*'), null],
+            ['Notifications', 'fa-bell', route('employee.notifications.index'), request()->routeIs('employee.notifications.*'), auth()->user()->unreadNotifications()->count()],
+            ['Activity History', 'fa-clipboard-list', route('employee.activity.index'), request()->routeIs('employee.activity.*'), null],
+            ['My Profile', 'fa-user', route('employee.profile.show'), request()->routeIs('employee.profile.*'), null],
+            ['Change Password', 'fa-key', route('employee.password.edit'), request()->routeIs('employee.password.*'), null],
         ],
     };
 @endphp
@@ -71,4 +82,10 @@
             @endforeach
         </div>
     </nav>
+    <div class="sidebar-footer">
+        <form method="POST" action="{{ route('logout') }}" data-confirm="Sign out of Elevanix?">
+            @csrf
+            <button class="sidebar-logout" type="submit"><i class="fa-solid fa-arrow-right-from-bracket"></i>Logout</button>
+        </form>
+    </div>
 </aside>

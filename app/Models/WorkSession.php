@@ -19,6 +19,10 @@ class WorkSession extends Model
         'ended_at',
         'duration_minutes',
         'notes',
+        'status',
+        'is_manual',
+        'approval_status',
+        'adjustment_reason',
     ];
 
     protected function casts(): array
@@ -26,6 +30,7 @@ class WorkSession extends Model
         return [
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
+            'is_manual' => 'boolean',
         ];
     }
 

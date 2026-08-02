@@ -21,7 +21,7 @@ class CompanyApprovedMiddleware
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->with('error', 'Your company account is not approved for access.');
+            abort(403, 'Your company account is currently unavailable. Please contact your Company Admin.');
         }
 
         return $next($request);

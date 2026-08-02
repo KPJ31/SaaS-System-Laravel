@@ -21,8 +21,12 @@ class WorkTimerService
             throw ValidationException::withMessages(['project_id' => 'The selected project is not available.']);
         }
 
-        if ($task && ($task->company_id !== $user->company_id || ($project && $task->project_id !== $project->id))) {
+        if ($task && ($task->company_id !== $user->company_id || (int) $task->assignee_id !== (int) $user->id || ($project && $task->project_id !== $project->id))) {
             throw ValidationException::withMessages(['task_id' => 'The selected task is not available.']);
+        }
+
+        if ($task && in_array($task->status, ['completed', 'cancelled'], true)) {
+            throw ValidationException::withMessages(['task_id' => 'Completed or cancelled tasks cannot be started.']);
         }
 
         return DB::transaction(function () use ($user, $project, $task, $notes): WorkSession {
@@ -36,14 +40,21 @@ class WorkTimerService
                 throw ValidationException::withMessages(['timer' => 'Stop the active work timer before starting another one.']);
             }
 
-            return WorkSession::create([
+            $session = WorkSession::create([
                 'company_id' => $user->company_id,
                 'user_id' => $user->id,
                 'project_id' => $project?->id,
                 'task_id' => $task?->id,
                 'started_at' => now(),
                 'notes' => $notes,
+                'status' => 'running',
             ]);
+
+            if ($task && in_array($task->status, ['todo', 'assigned', 'paused'], true)) {
+                $task->update(['status' => 'in_progress']);
+            }
+
+            return $session;
         });
     }
 
@@ -64,6 +75,7 @@ class WorkTimerService
             'ended_at' => $endedAt,
             'duration_minutes' => $duration,
             'notes' => $notes ?? $workSession->notes,
+            'status' => 'stopped',
         ])->save();
 
         return $workSession->refresh();
