@@ -25,6 +25,7 @@
         'payments' => ['Payment Report', 'Client project payment records.', 'fa-credit-card'],
         'invoices' => ['Invoice Report', 'Invoice totals and payment status.', 'fa-file-invoice-dollar'],
         'revenue' => ['Revenue Report', 'Client project revenue records.', 'fa-money-bill-trend-up'],
+        'leave' => ['Leave Report', 'Employee leave requests and review status.', 'fa-calendar-check'],
         'feedback' => ['Feedback Report', 'Client ratings and feedback status.', 'fa-star'],
     ];
 @endphp

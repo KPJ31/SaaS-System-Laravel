@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Feedback;
 use App\Models\Invoice;
+use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\ProjectRequest;
@@ -38,6 +39,8 @@ class DashboardController extends Controller
             'overdueTasksCount' => Task::where('company_id', $companyId)->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled'])->count(),
             'todayWorkMinutes' => WorkSession::where('company_id', $companyId)->whereDate('started_at', today())->sum('duration_minutes'),
             'monthWorkMinutes' => WorkSession::where('company_id', $companyId)->whereBetween('started_at', [$monthStart, $monthEnd])->sum('duration_minutes'),
+            'weekWorkMinutes' => WorkSession::where('company_id', $companyId)->whereBetween('started_at', [now()->startOfWeek(), now()->endOfWeek()])->sum('duration_minutes'),
+            'pendingLeavesCount' => LeaveRequest::where('company_id', $companyId)->where('status', 'pending')->count(),
             'pendingPaymentsCount' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count(),
             'paidInvoicesCount' => Invoice::where('company_id', $companyId)->where('status', 'paid')->count(),
             'monthlyRevenue' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->whereIn('status', ['paid', 'received', 'verified'])->whereBetween('created_at', [$monthStart, $monthEnd])->sum('amount'),
@@ -48,11 +51,17 @@ class DashboardController extends Controller
             'payments' => Payment::with(['client', 'project'])->where('company_id', $companyId)->where('payment_type', 'client_project')->latest()->take(5)->get(),
             'employees' => User::where('company_id', $companyId)->where('role', 'employee')->latest()->take(5)->get(),
             'feedback' => Feedback::with(['client', 'project'])->where('company_id', $companyId)->latest()->take(5)->get(),
+            'leaveRequests' => LeaveRequest::with('user')->where('company_id', $companyId)->latest()->take(5)->get(),
+            'latestActivities' => \App\Models\AuditLog::with('user')->where('company_id', $companyId)->latest()->take(6)->get(),
             'chartData' => [
                 'projectStatusLabels' => Project::where('company_id', $companyId)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('status')->values(),
                 'projectStatusValues' => Project::where('company_id', $companyId)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total')->values(),
                 'taskStatusLabels' => Task::where('company_id', $companyId)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('status')->values(),
                 'taskStatusValues' => Task::where('company_id', $companyId)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total')->values(),
+                'employeeHoursLabels' => User::where('company_id', $companyId)->where('role', 'employee')->orderBy('name')->limit(8)->pluck('name'),
+                'employeeHoursValues' => User::where('company_id', $companyId)->where('role', 'employee')->orderBy('name')->limit(8)->get()->map(fn ($employee) => round($employee->workSessions()->whereBetween('started_at', [$monthStart, $monthEnd])->sum('duration_minutes') / 60, 2)),
+                'paymentStatusLabels' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->selectRaw('status, count(*) as total')->groupBy('status')->pluck('status')->values(),
+                'paymentStatusValues' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total')->values(),
             ],
         ]);
     }

@@ -15,9 +15,12 @@
     @include('partials.stat-card', ['label' => 'Projects', 'value' => $projectsCount, 'icon' => 'fa-diagram-project', 'tone' => 'green'])
     @include('partials.stat-card', ['label' => 'Tasks', 'value' => $tasksCount, 'icon' => 'fa-list-check', 'tone' => 'yellow'])
     @include('partials.stat-card', ['label' => 'Pending Requests', 'value' => $pendingRequestsCount, 'icon' => 'fa-inbox', 'tone' => 'yellow'])
+    @include('partials.stat-card', ['label' => 'Pending Leave', 'value' => $pendingLeavesCount, 'icon' => 'fa-calendar-check', 'tone' => 'yellow'])
     @include('partials.stat-card', ['label' => 'Overdue Tasks', 'value' => $overdueTasksCount, 'icon' => 'fa-triangle-exclamation'])
     @include('partials.stat-card', ['label' => 'Today Hours', 'value' => number_format($todayWorkMinutes / 60, 1), 'icon' => 'fa-clock', 'tone' => 'blue'])
+    @include('partials.stat-card', ['label' => 'Week Hours', 'value' => number_format($weekWorkMinutes / 60, 1), 'icon' => 'fa-calendar-week', 'tone' => 'blue'])
     @include('partials.stat-card', ['label' => 'Monthly Revenue', 'value' => '$'.number_format($monthlyRevenue, 2), 'icon' => 'fa-money-bill-trend-up', 'tone' => 'green'])
+    @include('partials.stat-card', ['label' => 'Total Revenue', 'value' => '$'.number_format($totalRevenue, 2), 'icon' => 'fa-sack-dollar', 'tone' => 'green'])
 </div>
 
 <div class="content-card mb-3">
@@ -45,6 +48,16 @@
     <section class="content-card">
         <div class="content-card-header"><div><h2>Task Status</h2><p>Delivery load across task workflow stages.</p></div></div>
         <canvas data-chart="companyTaskStatus" height="140"></canvas>
+    </section>
+</div>
+<div class="content-grid mb-3">
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Employee Work Hours</h2><p>This month by employee.</p></div></div>
+        <canvas data-chart="companyEmployeeHours" height="140"></canvas>
+    </section>
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Payment Status</h2><p>Client project payment distribution.</p></div></div>
+        <canvas data-chart="companyPaymentStatus" height="140"></canvas>
     </section>
 </div>
 
@@ -100,6 +113,17 @@
                 </tbody>
             </table>
         </div>
+    </section>
+</div>
+
+<div class="content-grid mt-3">
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Recent Leave Requests</h2><p>Latest employee leave activity.</p></div></div>
+        <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Employee</th><th>Dates</th><th>Status</th></tr></thead><tbody>@forelse($leaveRequests as $leave)<tr><td>{{ $leave->user?->name }}</td><td>{{ $leave->start_date->format('M d') }} - {{ $leave->end_date->format('M d') }}</td><td>@include('partials.status-badge', ['status' => $leave->status])</td></tr>@empty<tr><td colspan="3" class="empty-cell">@include('partials.empty-state', ['icon' => 'fa-calendar-check', 'title' => 'No leave requests', 'message' => 'Leave requests will appear here.'])</td></tr>@endforelse</tbody></table></div>
+    </section>
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Latest Activities</h2><p>Recent company audit records.</p></div></div>
+        <div class="activity-list">@forelse($latestActivities as $activity)<div><strong>{{ str_replace('_', ' ', $activity->action) }}</strong><span>{{ $activity->description }}</span></div>@empty @include('partials.empty-state', ['icon' => 'fa-clipboard-list', 'title' => 'No activity', 'message' => 'Company activity appears here.']) @endforelse</div>
     </section>
 </div>
 

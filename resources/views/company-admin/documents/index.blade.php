@@ -1,0 +1,18 @@
+@extends('layouts.app')
+
+@section('title', 'Documents - Elevanix')
+
+@section('content')
+@include('partials.page-header', ['eyebrow' => 'Company Admin', 'title' => 'Documents', 'description' => 'Manage company, project and task files.'])
+<section class="content-card mb-3">
+    <form method="POST" action="{{ route('company-admin.documents.store') }}" enctype="multipart/form-data" class="row g-2 align-items-end">
+        @csrf
+        <div class="col-md-3"><label class="form-label">Project</label><select class="form-select" name="project_id"><option value="">General company file</option>@foreach($projects as $project)<option value="{{ $project->id }}">{{ $project->name }}</option>@endforeach</select></div>
+        <div class="col-md-3"><label class="form-label">Task</label><select class="form-select" name="task_id"><option value="">No task</option>@foreach($tasks as $task)<option value="{{ $task->id }}">{{ $task->title }}</option>@endforeach</select></div>
+        <div class="col-md-4"><label class="form-label">File</label><input class="form-control" type="file" name="file" required></div>
+        <div class="col-md-2"><button class="btn btn-primary w-100"><i class="fa-solid fa-upload"></i>Upload</button></div>
+    </form>
+</section>
+<section class="content-card mb-3"><form class="row g-2"><div class="col-md-3"><select class="form-select" name="project_id"><option value="">All projects</option>@foreach($projects as $project)<option value="{{ $project->id }}" @selected(request('project_id') == $project->id)>{{ $project->name }}</option>@endforeach</select></div><div class="col-md-3"><select class="form-select" name="task_id"><option value="">All tasks</option>@foreach($tasks as $task)<option value="{{ $task->id }}" @selected(request('task_id') == $task->id)>{{ $task->title }}</option>@endforeach</select></div><div class="col-md-2"><select class="form-select" name="type"><option value="">All types</option>@foreach(['pdf','docx','xlsx','png','jpg','webp','zip'] as $type)<option value="{{ $type }}" @selected(request('type') === $type)>{{ strtoupper($type) }}</option>@endforeach</select></div><div class="col-md-2"><input class="form-control" type="date" name="date" value="{{ request('date') }}"></div><div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="fa-solid fa-filter"></i>Filter</button></div></form></section>
+<section class="content-card"><div class="table-responsive"><table class="table align-middle"><thead><tr><th>File</th><th>Project</th><th>Task</th><th>Uploaded By</th><th>Date</th><th class="text-end">Actions</th></tr></thead><tbody>@forelse($files as $file)<tr><td><strong>{{ $file->original_name }}</strong><small>{{ number_format($file->size / 1024, 1) }} KB</small></td><td>{{ $file->project?->name ?? 'Company file' }}</td><td>{{ $file->task?->title ?? '-' }}</td><td>{{ $file->uploader?->name }}</td><td>{{ $file->created_at->format('M d, Y') }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.documents.download', $file) }}"><i class="fa-solid fa-download"></i>Download</a><form class="d-inline" method="POST" action="{{ route('company-admin.documents.destroy', $file) }}" data-confirm="Delete this document?">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i>Delete</button></form></td></tr>@empty<tr><td colspan="6" class="empty-cell">@include('partials.empty-state', ['icon' => 'fa-folder-open', 'title' => 'No documents', 'message' => 'Uploaded company files appear here.'])</td></tr>@endforelse</tbody></table></div>{{ $files->links() }}</section>
+@endsection

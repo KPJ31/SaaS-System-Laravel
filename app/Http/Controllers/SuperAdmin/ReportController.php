@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\Payment;
+use App\Models\Project;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
+use App\Models\Task;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -121,6 +123,44 @@ class ReportController extends Controller
                     $log->created_at->format('Y-m-d H:i'),
                 ]),
             ],
+            'projects' => [
+                ['Project', 'Company', 'Status', 'Priority', 'Progress', 'Due'],
+                Project::with('company')->latest()->limit(500)->get()->map(fn ($project) => [
+                    $project->name,
+                    $project->company?->name ?? '-',
+                    str_replace('_', ' ', $project->status),
+                    ucfirst($project->priority),
+                    $project->progress.'%',
+                    $project->due_date?->format('Y-m-d') ?? '-',
+                ]),
+            ],
+            'tasks' => [
+                ['Task', 'Company', 'Project', 'Assignee', 'Status', 'Due'],
+                Task::with(['company', 'project', 'assignee'])->latest()->limit(500)->get()->map(fn ($task) => [
+                    $task->title,
+                    $task->company?->name ?? '-',
+                    $task->project?->name ?? '-',
+                    $task->assignee?->name ?? 'Unassigned',
+                    str_replace('_', ' ', $task->status),
+                    $task->due_date?->format('Y-m-d') ?? '-',
+                ]),
+            ],
+            'subscription-expiry' => [
+                ['Company', 'Plan', 'Status', 'Renews', 'Ends', 'Warning'],
+                Subscription::with(['company', 'plan'])->where(fn ($query) => $query->whereNotNull('renews_at')->orWhereNotNull('ends_at'))->latest()->get()->map(function ($subscription) {
+                    $date = $subscription->ends_at ?? $subscription->renews_at;
+                    $days = $date ? now()->startOfDay()->diffInDays($date->startOfDay(), false) : null;
+
+                    return [
+                        $subscription->company?->name ?? '-',
+                        $subscription->plan?->name ?? '-',
+                        ucfirst($subscription->status),
+                        $subscription->renews_at?->format('Y-m-d') ?? '-',
+                        $subscription->ends_at?->format('Y-m-d') ?? '-',
+                        $days === null ? '-' : ($days < 0 ? 'Expired' : 'Expires in '.$days.' days'),
+                    ];
+                }),
+            ],
         };
 
         return [
@@ -140,6 +180,9 @@ class ReportController extends Controller
             'payments' => 'Revenue Report',
             'users' => 'Company User Report',
             'audit-logs' => 'Audit Activity Report',
+            'projects' => 'Project Monitoring Report',
+            'tasks' => 'Task Monitoring Report',
+            'subscription-expiry' => 'Subscription Expiry Report',
         ];
     }
 }

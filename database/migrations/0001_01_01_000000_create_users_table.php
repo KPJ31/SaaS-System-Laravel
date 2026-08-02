@@ -22,12 +22,14 @@ return new class extends Migration
             $table->string('employee_code')->nullable();
             $table->string('job_title')->nullable();
             $table->string('department')->nullable();
+            $table->text('address')->nullable();
             $table->date('join_date')->nullable();
             $table->decimal('hourly_rate', 10, 2)->nullable();
             $table->string('role')->index();
             $table->string('status')->default('active')->index();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->boolean('must_change_password')->default(false);
             $table->timestamp('last_login_at')->nullable();
             $table->string('last_login_ip', 45)->nullable();
             $table->rememberToken();

@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\WorkSession;
+use App\Services\AuditLogger;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\View\View;
@@ -50,6 +52,30 @@ class WorkSessionController extends Controller
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="work-sessions.csv"',
         ]);
+    }
+
+    public function update(Request $request, WorkSession $workSession, AuditLogger $logger): RedirectResponse
+    {
+        $this->abortUnlessCompanyRecord($workSession);
+        abort_if($workSession->ended_at === null, 422, 'Running sessions cannot be corrected.');
+
+        $data = $request->validate([
+            'duration_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'adjustment_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $old = $workSession->only(['duration_minutes', 'notes']);
+        $workSession->update([
+            'duration_minutes' => $data['duration_minutes'],
+            'notes' => $data['notes'] ?? $workSession->notes,
+            'status' => 'adjusted',
+            'approval_status' => 'approved',
+            'adjustment_reason' => $data['adjustment_reason'],
+        ]);
+        $logger->record('work_session_adjusted', 'Work session corrected with reason.', auth()->user(), $workSession, $this->companyId(), ['old' => $old, 'new' => $data], $request);
+
+        return back()->with('success', 'Work session corrected.');
     }
 
     private function filtered(Request $request)

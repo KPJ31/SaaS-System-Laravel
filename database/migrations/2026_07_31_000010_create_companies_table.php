@@ -24,10 +24,20 @@ return new class extends Migration
             $table->string('status')->default('pending')->index();
             $table->timestamps();
         });
+
+        Schema::table('users', function (Blueprint $table): void {
+            $table->foreign('company_id')->references('id')->on('companies')->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        if (Schema::hasTable('users')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->dropForeign(['company_id']);
+            });
+        }
+
         Schema::dropIfExists('companies');
     }
 };

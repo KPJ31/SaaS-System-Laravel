@@ -6,9 +6,13 @@ use App\Http\Controllers\CompanyAdmin\Concerns\HandlesCompanyAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\User;
+use App\Models\WorkFile;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class TaskController extends Controller
@@ -57,7 +61,7 @@ class TaskController extends Controller
     {
         $this->abortUnlessCompanyRecord($task);
 
-        return view('company-admin.tasks.show', ['task' => $task->load(['project', 'assignee', 'workSessions.user'])]);
+        return view('company-admin.tasks.show', ['task' => $task->load(['project', 'assignee', 'workSessions.user', 'comments.user', 'files.uploader'])]);
     }
 
     public function edit(Task $task): View
@@ -93,11 +97,70 @@ class TaskController extends Controller
     public function updateStatus(Task $task, string $status): RedirectResponse
     {
         $this->abortUnlessCompanyRecord($task);
-        abort_unless(in_array($status, ['todo', 'assigned', 'in_progress', 'paused', 'submitted', 'under_review', 'completed', 'cancelled'], true), 404);
+        abort_unless(in_array($status, ['todo', 'assigned', 'in_progress', 'paused', 'blocked', 'submitted', 'under_review', 'completed', 'cancelled'], true), 404);
         $task->update(['status' => $status, 'completed_at' => $status === 'completed' ? now() : null]);
         $this->syncProjectProgress($task->project);
 
         return back()->with('success', 'Task status updated.');
+    }
+
+    public function review(Request $request, Task $task, AuditLogger $logger): RedirectResponse
+    {
+        $this->abortUnlessCompanyRecord($task);
+        $data = $request->validate([
+            'status' => ['required', 'in:under_review,in_progress,completed,cancelled'],
+            'blocked_reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $task->update([
+            'status' => $data['status'],
+            'progress' => $data['status'] === 'completed' ? 100 : $task->progress,
+            'completed_at' => $data['status'] === 'completed' ? now() : null,
+            'blocked_reason' => $data['blocked_reason'] ?? null,
+        ]);
+        $this->syncProjectProgress($task->project);
+        $logger->record('task_'.$data['status'], 'Task reviewed by Company Admin.', auth()->user(), $task, $this->companyId(), request: $request);
+
+        return back()->with('success', 'Task review status updated.');
+    }
+
+    public function comment(Request $request, Task $task, AuditLogger $logger): RedirectResponse
+    {
+        $this->abortUnlessCompanyRecord($task);
+        $data = $request->validate(['comment' => ['required', 'string', 'max:2000']]);
+        $comment = TaskComment::create($data + ['company_id' => $this->companyId(), 'task_id' => $task->id, 'user_id' => auth()->id()]);
+        $logger->record('comment_added', 'Company Admin added a task comment.', auth()->user(), $comment, $this->companyId(), request: $request);
+
+        return back()->with('success', 'Comment added.');
+    }
+
+    public function upload(Request $request, Task $task, AuditLogger $logger): RedirectResponse
+    {
+        $this->abortUnlessCompanyRecord($task);
+        $data = $request->validate(['file' => ['required', 'file', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,webp,zip', 'max:5120']]);
+        $uploaded = $data['file'];
+        $path = $uploaded->store('work-files/'.$this->companyId(), 'public');
+        $file = WorkFile::create([
+            'company_id' => $this->companyId(),
+            'project_id' => $task->project_id,
+            'task_id' => $task->id,
+            'uploaded_by' => auth()->id(),
+            'original_name' => $uploaded->getClientOriginalName(),
+            'path' => $path,
+            'mime_type' => $uploaded->getMimeType(),
+            'size' => $uploaded->getSize(),
+            'visibility' => 'company',
+        ]);
+        $logger->record('file_uploaded', 'Company Admin uploaded a task file.', auth()->user(), $file, $this->companyId(), request: $request);
+
+        return back()->with('success', 'File uploaded.');
+    }
+
+    public function download(WorkFile $file)
+    {
+        abort_unless($file->company_id === $this->companyId(), 403);
+
+        return Storage::disk('public')->download($file->path, $file->original_name);
     }
 
     private function form(Task $task): View
@@ -117,7 +180,7 @@ class TaskController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:4000'],
             'priority' => ['required', 'in:low,medium,high,urgent'],
-            'status' => ['required', 'in:todo,assigned,in_progress,paused,submitted,under_review,completed,cancelled'],
+            'status' => ['required', 'in:todo,assigned,in_progress,paused,blocked,submitted,under_review,completed,cancelled'],
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
             'estimated_hours' => ['nullable', 'numeric', 'min:0'],

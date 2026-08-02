@@ -18,6 +18,10 @@ return new class extends Migration
             $table->timestamp('ended_at')->nullable();
             $table->unsignedInteger('duration_minutes')->default(0);
             $table->text('notes')->nullable();
+            $table->string('status')->default('running')->index();
+            $table->boolean('is_manual')->default(false);
+            $table->string('approval_status')->nullable()->index();
+            $table->text('adjustment_reason')->nullable();
             $table->timestamps();
 
             $table->index(['company_id', 'user_id', 'started_at']);

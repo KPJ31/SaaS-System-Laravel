@@ -10,9 +10,11 @@ use App\Http\Controllers\CompanyAdmin\ActivityLogController as CompanyAdminActiv
 use App\Http\Controllers\CompanyAdmin\ClientController as CompanyAdminClientController;
 use App\Http\Controllers\CompanyAdmin\DashboardController as CompanyAdminDashboardController;
 use App\Http\Controllers\CompanyAdmin\CompanyProfileController;
+use App\Http\Controllers\CompanyAdmin\DocumentController as CompanyAdminDocumentController;
 use App\Http\Controllers\CompanyAdmin\EmployeeController;
 use App\Http\Controllers\CompanyAdmin\FeedbackController as CompanyAdminFeedbackController;
 use App\Http\Controllers\CompanyAdmin\InvoiceController as CompanyAdminInvoiceController;
+use App\Http\Controllers\CompanyAdmin\LeaveRequestController as CompanyAdminLeaveRequestController;
 use App\Http\Controllers\CompanyAdmin\NotificationController as CompanyAdminNotificationController;
 use App\Http\Controllers\CompanyAdmin\PaymentController as CompanyAdminPaymentController;
 use App\Http\Controllers\CompanyAdmin\ProfileController as CompanyAdminProfileController;
@@ -147,9 +149,23 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
 
     Route::resource('tasks', CompanyAdminTaskController::class);
     Route::post('/tasks/{task}/{status}', [CompanyAdminTaskController::class, 'updateStatus'])->name('tasks.status');
+    Route::patch('/tasks/{task}/review', [CompanyAdminTaskController::class, 'review'])->name('tasks.review');
+    Route::post('/tasks/{task}/comments', [CompanyAdminTaskController::class, 'comment'])->name('tasks.comments.store');
+    Route::post('/tasks/{task}/files', [CompanyAdminTaskController::class, 'upload'])->name('tasks.files.store');
+    Route::get('/files/{file}/download', [CompanyAdminTaskController::class, 'download'])->name('files.download');
 
     Route::get('/work-sessions', [CompanyAdminWorkSessionController::class, 'index'])->name('work-sessions.index');
     Route::get('/work-sessions/export/csv', [CompanyAdminWorkSessionController::class, 'export'])->name('work-sessions.export');
+    Route::patch('/work-sessions/{workSession}', [CompanyAdminWorkSessionController::class, 'update'])->name('work-sessions.update');
+
+    Route::get('/leave-requests', [CompanyAdminLeaveRequestController::class, 'index'])->name('leave-requests.index');
+    Route::get('/leave-requests/{leaveRequest}', [CompanyAdminLeaveRequestController::class, 'show'])->name('leave-requests.show');
+    Route::patch('/leave-requests/{leaveRequest}/review', [CompanyAdminLeaveRequestController::class, 'review'])->name('leave-requests.review');
+
+    Route::get('/documents', [CompanyAdminDocumentController::class, 'index'])->name('documents.index');
+    Route::post('/documents', [CompanyAdminDocumentController::class, 'store'])->name('documents.store');
+    Route::get('/documents/{file}/download', [CompanyAdminDocumentController::class, 'download'])->name('documents.download');
+    Route::delete('/documents/{file}', [CompanyAdminDocumentController::class, 'destroy'])->name('documents.destroy');
 
     Route::resource('payments', CompanyAdminPaymentController::class);
     Route::post('/payments/{payment}/verify', [CompanyAdminPaymentController::class, 'verify'])->name('payments.verify');

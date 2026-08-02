@@ -25,6 +25,9 @@
         'subscriptions' => ['Subscription Report', 'Company plans, status and subscription dates.', 'fa-repeat'],
         'payments' => ['Revenue Report', 'Subscription payment revenue and verification status.', 'fa-sack-dollar'],
         'users' => ['Company User Report', 'Platform users, role, company and account status.', 'fa-users'],
+        'projects' => ['Project Monitoring Report', 'Platform projects by company, status and due date.', 'fa-diagram-project'],
+        'tasks' => ['Task Monitoring Report', 'Platform task status and assignment visibility.', 'fa-list-check'],
+        'subscription-expiry' => ['Subscription Expiry Report', 'Subscriptions with renewal or expiry warnings.', 'fa-calendar-days'],
         'audit-logs' => ['Audit Activity Report', 'Recent administrative activity and tracked actions.', 'fa-clipboard-list'],
     ];
 @endphp

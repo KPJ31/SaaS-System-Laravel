@@ -21,9 +21,15 @@
     @include('partials.stat-card', ['label' => 'Suspended Companies', 'value' => $suspendedCompaniesCount, 'icon' => 'fa-ban'])
     @include('partials.stat-card', ['label' => 'Rejected Companies', 'value' => $rejectedCompaniesCount, 'icon' => 'fa-circle-xmark'])
     @include('partials.stat-card', ['label' => 'Company Admins', 'value' => $companyAdminsCount, 'icon' => 'fa-user-tie', 'tone' => 'blue'])
+    @include('partials.stat-card', ['label' => 'Employees', 'value' => $employeesCount, 'icon' => 'fa-users'])
+    @include('partials.stat-card', ['label' => 'Projects', 'value' => $projectsCount, 'icon' => 'fa-diagram-project', 'tone' => 'blue'])
+    @include('partials.stat-card', ['label' => 'Active Projects', 'value' => $activeProjectsCount, 'icon' => 'fa-bolt', 'tone' => 'green'])
+    @include('partials.stat-card', ['label' => 'Completed Projects', 'value' => $completedProjectsCount, 'icon' => 'fa-circle-check', 'tone' => 'green'])
     @include('partials.stat-card', ['label' => 'Plans', 'value' => $subscriptionPlansCount, 'icon' => 'fa-layer-group'])
     @include('partials.stat-card', ['label' => 'Active Subscriptions', 'value' => $activeSubscriptionsCount, 'icon' => 'fa-repeat', 'tone' => 'blue'])
     @include('partials.stat-card', ['label' => 'Expired Subscriptions', 'value' => $expiredSubscriptionsCount, 'icon' => 'fa-calendar-xmark'])
+    @include('partials.stat-card', ['label' => 'Pending Payments', 'value' => $pendingSubscriptionPaymentsCount, 'icon' => 'fa-credit-card', 'tone' => 'yellow'])
+    @include('partials.stat-card', ['label' => 'Unread Alerts', 'value' => $unreadNotificationsCount, 'icon' => 'fa-bell'])
     @include('partials.stat-card', ['label' => 'Monthly Revenue', 'value' => '$'.number_format($monthlyRevenue, 2), 'icon' => 'fa-chart-line'])
     @include('partials.stat-card', ['label' => 'Total Revenue', 'value' => '$'.number_format($totalRevenue, 2), 'icon' => 'fa-sack-dollar', 'tone' => 'green'])
 </div>
@@ -33,6 +39,9 @@
     <div class="col-lg-6"><section class="content-card"><h2>Subscription Revenue</h2><canvas data-chart="revenueGrowth"></canvas></section></div>
     <div class="col-lg-4"><section class="content-card"><h2>Company Status</h2><canvas data-chart="companyStatus"></canvas></section></div>
     <div class="col-lg-4"><section class="content-card"><h2>Plan Usage</h2><canvas data-chart="planUsage"></canvas></section></div>
+    <div class="col-lg-4"><section class="content-card"><h2>Project Status</h2><canvas data-chart="platformProjectStatus"></canvas></section></div>
+    <div class="col-lg-6"><section class="content-card"><h2>User Growth</h2><canvas data-chart="platformUserGrowth"></canvas></section></div>
+    <div class="col-lg-6"><section class="content-card"><h2>Task Status</h2><canvas data-chart="platformTaskStatus"></canvas></section></div>
 </div>
 
 <div class="row g-3">
@@ -40,6 +49,8 @@
         ['Recently Registered Companies', $recentCompanies, 'name', 'email', 'super-admin.companies.show'],
         ['Pending Company Approvals', $latestRequests, 'company_name', 'admin_email', 'super-admin.company-requests.show'],
         ['Recent Subscription Payments', $recentPayments, 'transaction_reference', 'amount', 'super-admin.payments.show'],
+        ['Recent Projects', $recentProjects, 'name', 'status', 'super-admin.reports.show'],
+        ['Latest Platform Users', $latestUsers, 'name', 'email', 'super-admin.users.show'],
     ] as [$heading, $rows, $main, $sub, $routeName])
         <div class="col-xl-4 col-lg-6">
             <section class="content-card h-100">
@@ -49,7 +60,7 @@
                         <div>
                             <strong>{{ $row->{$main} ?: 'Reference #'.$row->id }}</strong>
                             <span>{{ $sub === 'amount' ? '$'.number_format($row->{$sub}, 2) : str_replace('_', ' ', (string) $row->{$sub}) }}</span>
-                            <a class="small" href="{{ route($routeName, $row) }}">View</a>
+                            <a class="small" href="{{ $routeName === 'super-admin.reports.show' ? route($routeName, 'projects') : route($routeName, $row) }}">View</a>
                         </div>
                     @empty
                         @include('partials.empty-state', ['icon' => 'fa-circle-info', 'title' => 'No records', 'message' => 'New activity will appear here.'])
@@ -81,6 +92,11 @@
         companyStatusValues: @json($companyStatusValues),
         planUsageLabels: @json($planUsageLabels),
         planUsageValues: @json($planUsageValues),
+        projectStatusLabels: @json($projectStatusLabels),
+        projectStatusValues: @json($projectStatusValues),
+        taskStatusLabels: @json($taskStatusLabels),
+        taskStatusValues: @json($taskStatusValues),
+        userGrowth: @json($userGrowth),
     };
 </script>
 @endsection

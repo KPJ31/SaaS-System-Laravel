@@ -24,6 +24,7 @@ return new class extends Migration
             $table->decimal('estimated_hours', 8, 2)->nullable();
             $table->unsignedTinyInteger('progress')->default(0);
             $table->string('task_type')->default('task')->index();
+            $table->text('blocked_reason')->nullable();
             $table->timestamps();
 
             $table->index(['company_id', 'status']);

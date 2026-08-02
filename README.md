@@ -133,6 +133,7 @@ Public and Auth:
 Super Admin:
 
 - Dashboard
+- Expanded platform dashboard with company, user, project, subscription, payment and notification metrics
 - Company registration request approval/rejection
 - Company list, details, edit, activation, and suspension
 - Subscription plan CRUD and activation/deactivation
@@ -140,6 +141,7 @@ Super Admin:
 - Platform user list, details, status management, and password reset email
 - Payment review and status management
 - Reports with CSV/PDF export
+- Project monitoring, task monitoring and subscription expiry reports
 - Notifications
 - Audit logs
 - System settings
@@ -148,6 +150,7 @@ Super Admin:
 Company Admin:
 
 - Dashboard
+- Expanded dashboard with leave, work-hour, payment and activity insights
 - Company profile view/edit
 - Employee CRUD, status management, and password reset email
 - Client CRUD and status management
@@ -155,7 +158,11 @@ Company Admin:
 - Project CRUD
 - Employee assignment/removal for projects
 - Task CRUD and status updates
+- Task review, comments and task file uploads
 - Work session list and CSV export
+- Work session correction with required reason
+- Leave request review and approval/rejection
+- Company document upload, download and deletion
 - Payment CRUD, verification, and rejection
 - Invoice CRUD, print, send, and mark paid
 - Feedback moderation
@@ -316,8 +323,8 @@ php artisan test
 
 Current verified result:
 
-- 48 tests passed
-- 123 assertions passed
+- 53 tests passed
+- 135 assertions passed
 
 The test environment uses in-memory SQLite from `phpunit.xml`.
 
@@ -344,6 +351,10 @@ Test coverage includes:
 - Employee leave request creation
 - Employee performance page access
 - Suspended employee dashboard blocking
+- Company Admin leave review and cross-company leave protection
+- Company Admin document upload/download
+- Company Admin work session correction with reason
+- Super Admin project and subscription-expiry report access
 - System settings storage
 
 ## Reports And Documentation

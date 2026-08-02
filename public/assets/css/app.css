@@ -10,24 +10,24 @@ html {
 body {
     margin: 0;
     overflow-x: hidden;
-    background: #f5f7fb;
-    color: #334155;
+    background: #faf8ff;
+    color: #1f2937;
     font-family: Poppins, Arial, sans-serif;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 a {
-    color: #3651d4;
+    color: #6d28d9;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
 }
 
 a:hover {
-    color: #2438a4;
+    color: #4c1d95;
 }
 
 :focus-visible {
-    outline: 3px solid rgba(20, 184, 166, 0.32);
+    outline: 3px solid rgba(109, 40, 217, 0.25);
     outline-offset: 3px;
 }
 
@@ -56,28 +56,28 @@ img {
 }
 
 .btn-primary {
-    border-color: #3651d4;
-    background: linear-gradient(135deg, #3651d4, #14b8a6);
-    box-shadow: 0 12px 24px rgba(54, 81, 212, 0.18);
+    border-color: #6d28d9;
+    background: #6d28d9;
+    box-shadow: 0 12px 24px rgba(109, 40, 217, 0.18);
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
-    border-color: #2438a4;
-    background: linear-gradient(135deg, #2438a4, #0f766e);
+    border-color: #4c1d95;
+    background: #4c1d95;
 }
 
 .btn-outline-primary {
-    border-color: #c7d2fe;
-    color: #3651d4;
+    border-color: #e9d5ff;
+    color: #6d28d9;
     background: #ffffff;
 }
 
 .btn-outline-primary:hover,
 .btn-outline-primary:focus {
-    border-color: #3651d4;
-    background: #eef2ff;
-    color: #2438a4;
+    border-color: #6d28d9;
+    background: #f5f3ff;
+    color: #4c1d95;
 }
 
 .btn-outline-danger {
@@ -105,8 +105,8 @@ img {
 .form-control:focus,
 .form-select:focus,
 .form-check-input:focus {
-    border-color: #3651d4;
-    box-shadow: 0 0 0 0.22rem rgba(54, 81, 212, 0.14);
+    border-color: #6d28d9;
+    box-shadow: 0 0 0 0.22rem rgba(109, 40, 217, 0.14);
 }
 
 .form-label {
@@ -276,7 +276,7 @@ img {
     width: 268px;
     height: 100vh;
     flex-direction: column;
-    background: #101827;
+    background: #4c1d95;
     color: #cbd5e1;
     box-shadow: 18px 0 42px rgba(15, 23, 42, 0.16);
 }
@@ -428,14 +428,14 @@ img {
 
 .sidebar-menu a:hover,
 .sidebar-menu a.active {
-    background: linear-gradient(135deg, rgba(54, 81, 212, 0.35), rgba(20, 184, 166, 0.16));
+    background: rgba(255, 255, 255, 0.14);
     color: #ffffff;
     transform: translateX(2px);
 }
 
 .sidebar-menu a:hover i,
 .sidebar-menu a.active i {
-    color: #67e8f9;
+    color: #e9d5ff;
 }
 
 .sidebar-footer {

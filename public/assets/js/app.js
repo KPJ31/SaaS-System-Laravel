@@ -313,6 +313,24 @@ if (window.Chart && window.elevanixDashboardCharts) {
             options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
         });
     });
+
+    makeChart('[data-chart="platformProjectStatus"]', {
+        type: 'doughnut',
+        data: { labels: data.projectStatusLabels, datasets: [{ data: data.projectStatusValues, backgroundColor: colors }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+    });
+
+    makeChart('[data-chart="platformTaskStatus"]', {
+        type: 'doughnut',
+        data: { labels: data.taskStatusLabels, datasets: [{ data: data.taskStatusValues, backgroundColor: colors }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+    });
+
+    makeChart('[data-chart="platformUserGrowth"]', {
+        type: 'line',
+        data: { labels: data.labels, datasets: [{ label: 'Users', data: data.userGrowth, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.12)', tension: 0.35, fill: true }] },
+        options: { responsive: true, plugins: { legend: { display: false } } },
+    });
 }
 
 if (window.Chart && window.elevanixCompanyCharts) {
@@ -334,6 +352,17 @@ if (window.Chart && window.elevanixCompanyCharts) {
 
     chart('[data-chart="companyProjectStatus"]', data.projectStatusLabels, data.projectStatusValues);
     chart('[data-chart="companyTaskStatus"]', data.taskStatusLabels, data.taskStatusValues);
+
+    const employeeHours = document.querySelector('[data-chart="companyEmployeeHours"]');
+    if (employeeHours) {
+        new Chart(employeeHours, {
+            type: 'bar',
+            data: { labels: data.employeeHoursLabels, datasets: [{ label: 'Hours', data: data.employeeHoursValues, backgroundColor: '#6D28D9' }] },
+            options: { responsive: true, plugins: { legend: { display: false } } },
+        });
+    }
+
+    chart('[data-chart="companyPaymentStatus"]', data.paymentStatusLabels, data.paymentStatusValues);
 }
 
 document.querySelectorAll('[data-active-timer]').forEach((timer) => {

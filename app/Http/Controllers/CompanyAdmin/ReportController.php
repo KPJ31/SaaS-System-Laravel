@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Feedback;
 use App\Models\Invoice;
+use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\ProjectRequest;
@@ -205,6 +206,18 @@ class ReportController extends Controller
                     $feedback->message,
                 ]),
             ],
+            'leave' => [
+                ['Employee', 'Type', 'Start', 'End', 'Days', 'Status', 'Reviewed By'],
+                LeaveRequest::with(['user', 'reviewer'])->where('company_id', $companyId)->latest()->get()->map(fn (LeaveRequest $leave) => [
+                    $leave->user?->name ?? '-',
+                    ucfirst($leave->leave_type),
+                    $leave->start_date->format('Y-m-d'),
+                    $leave->end_date->format('Y-m-d'),
+                    $leave->total_days,
+                    ucfirst($leave->status),
+                    $leave->reviewer?->name ?? '-',
+                ]),
+            ],
         };
 
         return [
@@ -233,6 +246,7 @@ class ReportController extends Controller
             'invoices' => 'Invoice Report',
             'revenue' => 'Revenue Report',
             'feedback' => 'Feedback Report',
+            'leave' => 'Leave Report',
         ];
     }
 }

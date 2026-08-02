@@ -27,6 +27,8 @@
             ['Projects', 'fa-diagram-project', route('company-admin.projects.index'), request()->routeIs('company-admin.projects.*'), null],
             ['Tasks', 'fa-list-check', route('company-admin.tasks.index'), request()->routeIs('company-admin.tasks.*'), \App\Models\Task::where('company_id', auth()->user()->company_id)->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled'])->count()],
             ['Work Sessions', 'fa-clock', route('company-admin.work-sessions.index'), request()->routeIs('company-admin.work-sessions.*'), null],
+            ['Leave Requests', 'fa-calendar-check', route('company-admin.leave-requests.index'), request()->routeIs('company-admin.leave-requests.*'), \App\Models\LeaveRequest::where('company_id', auth()->user()->company_id)->where('status', 'pending')->count()],
+            ['Documents', 'fa-folder-open', route('company-admin.documents.index'), request()->routeIs('company-admin.documents.*'), null],
             ['Time Reports', 'fa-chart-line', route('company-admin.reports.index', ['report' => 'work-hours']), request()->routeIs('company-admin.reports.*'), null],
             ['Payments', 'fa-credit-card', route('company-admin.payments.index'), request()->routeIs('company-admin.payments.*'), \App\Models\Payment::where('company_id', auth()->user()->company_id)->where('payment_type', 'client_project')->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count()],
             ['Invoices', 'fa-file-invoice-dollar', route('company-admin.invoices.index'), request()->routeIs('company-admin.invoices.*'), null],
