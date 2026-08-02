@@ -3,12 +3,11 @@
 @section('title', 'Company Dashboard - Elevanix')
 
 @section('content')
-<div class="page-header welcome-banner">
-    <div>
-        <span>{{ auth()->user()->company->name }}</span>
-        <h1>Welcome back, {{ auth()->user()->name }}.</h1>
-    </div>
-</div>
+@include('partials.page-header', [
+    'eyebrow' => auth()->user()->company->name,
+    'title' => 'Welcome back, '.auth()->user()->name.'.',
+    'description' => 'Review your company workspace, recent projects and latest assigned work.',
+])
 
 <div class="stat-grid">
     @include('partials.stat-card', ['label' => 'Clients', 'value' => $clientsCount, 'icon' => 'fa-handshake'])
@@ -19,7 +18,12 @@
 
 <div class="content-grid">
     <section class="content-card">
-        <h2>Recent Projects</h2>
+        <div class="content-card-header">
+            <div>
+                <h2>Recent Projects</h2>
+                <p>Latest company projects with client context and progress.</p>
+            </div>
+        </div>
         <div class="project-list">
             @forelse($projects as $project)
                 <article>
@@ -30,13 +34,18 @@
                     </div>
                 </article>
             @empty
-                <p class="empty-cell">No projects yet.</p>
+                @include('partials.empty-state', ['icon' => 'fa-diagram-project', 'title' => 'No projects yet', 'message' => 'Projects created for this company will appear here.'])
             @endforelse
         </div>
     </section>
 
     <section class="content-card">
-        <h2>Latest Tasks</h2>
+        <div class="content-card-header">
+            <div>
+                <h2>Latest Tasks</h2>
+                <p>Recently created tasks across active company projects.</p>
+            </div>
+        </div>
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead>
@@ -54,7 +63,7 @@
                             <td>@include('partials.status-badge', ['status' => $task->status])</td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="empty-cell">No tasks yet.</td></tr>
+                        <tr><td colspan="3" class="empty-cell">@include('partials.empty-state', ['icon' => 'fa-list-check', 'title' => 'No tasks yet', 'message' => 'Assigned and unassigned tasks will appear here.'])</td></tr>
                     @endforelse
                 </tbody>
             </table>

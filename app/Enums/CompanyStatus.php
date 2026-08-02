@@ -8,4 +8,5 @@ enum CompanyStatus: string
     case Active = 'active';
     case Suspended = 'suspended';
     case Rejected = 'rejected';
+    case Expired = 'expired';
 }

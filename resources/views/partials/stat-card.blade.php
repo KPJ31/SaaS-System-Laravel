@@ -6,6 +6,9 @@
     <div>
         <span>{{ $label }}</span>
         <strong>{{ $value }}</strong>
+        @isset($description)
+            <small>{{ $description }}</small>
+        @endisset
     </div>
-    <i class="fa-solid {{ $icon }} tone-{{ $tone }}"></i>
+    <i class="fa-solid {{ $icon }} tone-{{ $tone }}" aria-hidden="true"></i>
 </article>

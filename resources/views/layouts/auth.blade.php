@@ -13,8 +13,13 @@
 </head>
 <body class="auth-body">
     @yield('content')
+    <button type="button" class="scroll-top-btn" data-scroll-top aria-label="Scroll to top">
+        <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+    </button>
+    @stack('modals')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ asset('assets/js/app.js') }}"></script>
+    @stack('scripts')
     @include('partials.alerts')
 </body>
 </html>

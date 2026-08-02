@@ -9,7 +9,7 @@
 - Existing routes only served the default welcome page.
 - Existing frontend contained Tailwind starter CSS; it was replaced with plain Bootstrap-oriented CSS loaded from the public assets folder.
 - Existing tests were Laravel/Pest skeleton tests.
-- No subscription tables, routes, controllers or views were found.
+- The current request requires SaaS subscriptions, so subscription plans and company subscriptions were added.
 
 ## Architecture Used
 
@@ -41,7 +41,10 @@ New separate migrations were added for:
 - `invoice_items`
 - `audit_logs`
 - `company_settings`
+- `system_settings`
 - `notifications`
+- `subscription_plans`
+- `subscriptions`
 
 Existing framework tables remain:
 
@@ -79,14 +82,38 @@ Models added:
 - `InvoiceItem`
 - `AuditLog`
 - `CompanySetting`
+- `SystemSetting`
+- `SubscriptionPlan`
+- `Subscription`
 
-The `User` model now includes fillable role/company fields, casts, soft deletes and relationships to company, projects, tasks, work sessions and audit logs.
+The `User` model now includes fillable role/company fields, casts, soft deletes and relationships to company, projects, tasks, work sessions and audit logs. `Company` now has `subscriptions()` and `activeSubscription()` relationships.
+
+Reusable company scoping was added through `App\Models\Concerns\BelongsToCompany` for current company-owned models.
 
 ## Middleware
 
 - `RoleMiddleware` supports one or more roles, for example `role:super_admin`.
 - `CompanyApprovedMiddleware` blocks company users whose company is missing or not active.
+- `SubscriptionActiveMiddleware` blocks company users whose company has no active or trialing subscription.
 - Middleware aliases are registered in `bootstrap/app.php`.
+
+## Policies And Services
+
+Policies added for current company-owned resources:
+
+- `ClientPolicy`
+- `ProjectRequestPolicy`
+- `ProjectPolicy`
+- `TaskPolicy`
+- `WorkSessionPolicy`
+- `PaymentPolicy`
+- `InvoicePolicy`
+- `UserPolicy`
+
+Services added:
+
+- `AuditLogger`, with metadata sanitization for passwords, tokens, secrets and SMTP values
+- `WorkTimerService`, with duplicate active timer prevention, tenant validation and duration calculation
 
 ## Roles
 
@@ -96,7 +123,7 @@ Implemented roles:
 - `company_admin`
 - `employee`
 
-The old `expired` company status enum value was removed because this system is not subscription based.
+Company status supports `expired` because the current SaaS brief includes subscription expiry.
 
 ## Modules Completed
 
@@ -108,6 +135,10 @@ Super Admin:
 - Reject company request
 - Companies list
 - Activate/suspend company
+- Subscription plan list/create/edit
+- Activate/deactivate subscription plans
+- Subscription dashboard metrics
+- Platform settings database defaults
 
 Company Admin:
 
@@ -121,6 +152,7 @@ Public/Auth:
 
 - Landing page
 - Login with email or username
+- Forgot-password and reset-password pages
 - Company registration form
 - Submitted confirmation page
 
@@ -129,7 +161,10 @@ Public/Auth:
 - Elevanix brand logo partial
 - Public landing page
 - Split login page
-- Registration page
+- Multi-step company registration page
+- Registration success page
+- Forgot-password page
+- Reset-password page
 - Shared app layout
 - Dark responsive sidebar
 - Top navbar
@@ -149,6 +184,8 @@ Notifications added:
 
 Approval email includes login URL, username and company name. It does not include the plain password.
 
+Company approval now assigns the first active subscription plan by display order. If no active plan exists, a Starter plan is created safely and assigned.
+
 ## Security Controls
 
 - CSRF-protected forms
@@ -158,8 +195,13 @@ Approval email includes login URL, username and company name. It does not includ
 - Session regeneration after login
 - Role middleware
 - Company approval middleware
+- Subscription active middleware
+- Tenant-aware policies for present company-owned models
+- Reusable company query scope
 - Server-side status checks before approval/rejection
 - Database transactions for approval/rejection
+- Duplicate active work timer prevention
+- Sanitized audit metadata helper
 - Safe `.env.example` placeholders
 
 ## Files Added
@@ -189,10 +231,12 @@ No new Composer or npm packages were installed.
 This pass implements a working ESSCMS foundation and vertical slice. The full advanced product modules listed in the brief still need later expansion:
 
 - Full CRUD for employees, clients, project requests, projects, tasks, payments and invoices
-- Timer start/stop UI and duplicate active timer enforcement
+- Timer start/stop UI
 - Protected document upload/download module
 - Profile and password update screens
 - Password reset customization
 - Reports screens beyond dashboard summaries
-- Detailed policies for every model
+- Controller-level policy enforcement must still be added as CRUD controllers are expanded
+- Dedicated branded Blade email templates are not yet created; current mail flows use Laravel notification mail messages
+- Subscription payment collection, dunning and warning emails
 - Responsive browser screenshot verification across all requested breakpoints

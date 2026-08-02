@@ -1,8 +1,8 @@
 # Elevanix - Smart Software Company Management System
 
-Elevanix, abbreviated as ESSCMS, is a Laravel 13 software company management system foundation for company registration approval, role-based access, dashboards, clients, projects, tasks, work sessions, invoices, payments, notifications and audit logs.
+Elevanix, abbreviated as ESSCMS, is a Laravel 13 multi-company SaaS management system foundation for company registration approval, subscription plans, role-based access, dashboards, clients, projects, tasks, work sessions, invoices, payments, notifications and audit logs.
 
-This project is not subscription based. There are no plans, trials, subscriptions, plan limits or subscription payment modules.
+Super Admin controls the SaaS platform, company approvals and subscription plans. Company users work inside one approved company and require an active or trialing subscription.
 
 ## Technology Stack
 
@@ -57,6 +57,7 @@ php artisan queue:listen
 
 ```bash
 php artisan test
+npm.cmd run build
 ```
 
 The test environment uses in-memory SQLite from `phpunit.xml`.
@@ -65,27 +66,56 @@ The test environment uses in-memory SQLite from `phpunit.xml`.
 
 After running the seeder:
 
-- Super Admin: `superadmin@elevanix.test` / `Password@123`
-- Company Admin: `admin@novastack.test` / `Password@123`
-- Company Admin: `admin@brightforge.test` / `Password@123`
-- Employee: `employee1@elevanix.test` / `Password@123`
-- Employee: `employee2@elevanix.test` / `Password@123`
+- Super Admin: `superadmin` or `superadmin@elevanix.test` / `Password@123`
+- Company Admin: `novastack_admin` or `admin@novastack.test` / `Password@123`
+- Company Admin: `brightforge_admin` or `admin@brightforge.test` / `Password@123`
+- Employee: `maya` or `employee1@elevanix.test` / `Password@123`
+- Employee: `arun` or `employee2@elevanix.test` / `Password@123`
+
+Seeded subscription plans:
+
+- Starter
+- Professional
+- Enterprise
+
+Seeder files are split by section:
+
+- `SystemSettingSeeder`
+- `SubscriptionPlanSeeder`
+- `SuperAdminSeeder`
+- `DemoCompanySeeder`
+- `DemoSubscriptionSeeder`
+- `DemoUserSeeder`
+- `DemoClientSeeder`
+- `DemoProjectSeeder`
+- `DemoFinanceSeeder`
+- `DemoWorkSessionSeeder`
+- `CompanyRegistrationRequestSeeder`
+- `AuditLogSeeder`
 
 ## Main Modules Implemented
 
 - Public landing page
 - Email or username login
+- Forgot-password and reset-password pages
 - Public company registration request
 - Super Admin request approval and rejection
+- Subscription plans
+- Company subscriptions
 - Role middleware
 - Company approval middleware
+- Subscription active middleware
 - Super Admin dashboard
 - Company Admin dashboard
 - Employee dashboard
 - Company listing and activation/suspension
+- Subscription plan management
+- System settings storage
+- Tenant-aware policies for existing company-owned models
+- Work timer service with duplicate active timer prevention
 - Elevanix Blade layout, sidebar, navbar and logo
 - Database schema for core ESSCMS tables
-- Demo seeder
+- Section-based demo seeders
 
 ## Security Notes
 
@@ -93,6 +123,9 @@ After running the seeder:
 - Logout is POST only.
 - Role checks are enforced server-side.
 - Company users are blocked when their company is not active.
+- Company users are blocked from company workspaces when their subscription is not active or trialing.
+- Tenant policies deny cross-company access for the current client, project, task, work session, payment, invoice and employee models.
+- Work timer service validates company ownership and prevents duplicate active sessions.
 - Company registration stores uploaded logos on the public disk after image validation.
 - Real `.env` secrets must never be copied to documentation or source files.
 

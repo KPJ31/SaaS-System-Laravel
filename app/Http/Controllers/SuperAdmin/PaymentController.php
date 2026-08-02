@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Http\Controllers\SuperAdmin;
+
+use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
+use App\Models\Company;
+use App\Models\Payment;
+use App\Models\SubscriptionPlan;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+
+class PaymentController extends Controller
+{
+    public function index(Request $request): View
+    {
+        $payments = Payment::with(['company', 'subscriptionPlan', 'verifier'])
+            ->when($request->filled('search'), function ($query) use ($request): void {
+                $query->where('transaction_reference', 'like', '%'.$request->search.'%')
+                    ->orWhereHas('company', fn ($company) => $company->where('name', 'like', '%'.$request->search.'%'));
+            })
+            ->when($request->filled('company'), fn ($query) => $query->where('company_id', $request->company))
+            ->when($request->filled('plan'), fn ($query) => $query->where('subscription_plan_id', $request->plan))
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
+            ->where(function ($query): void {
+                $query->where('payment_type', 'subscription')->orWhereNull('payment_type');
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        $verified = Payment::where('payment_type', 'subscription')->whereIn('status', ['verified', 'received', 'paid']);
+
+        return view('super-admin.payments.index', [
+            'payments' => $payments,
+            'companies' => Company::orderBy('name')->get(),
+            'plans' => SubscriptionPlan::orderBy('name')->get(),
+            'statuses' => ['pending', 'submitted', 'verified', 'rejected', 'failed', 'refunded', 'received', 'paid'],
+            'totalRevenue' => (clone $verified)->sum('amount'),
+            'monthlyRevenue' => (clone $verified)->whereMonth(DB::raw('COALESCE(paid_at, created_at)'), now()->month)->sum('amount'),
+            'pendingRevenue' => Payment::where('payment_type', 'subscription')->whereIn('status', ['pending', 'submitted'])->sum('amount'),
+        ]);
+    }
+
+    public function show(Payment $payment): View
+    {
+        return view('super-admin.payments.show', [
+            'payment' => $payment->load(['company', 'subscription', 'subscriptionPlan', 'project', 'client', 'verifier']),
+        ]);
+    }
+
+    public function updateStatus(Request $request, Payment $payment, string $status): RedirectResponse
+    {
+        abort_unless(in_array($status, ['verified', 'rejected', 'failed', 'refunded'], true), 404);
+
+        $data = $request->validate(['verification_note' => ['nullable', 'string', 'max:1000']]);
+        $old = $payment->only(['status', 'verified_by', 'verified_at', 'verification_note']);
+        $payment->update([
+            'status' => $status,
+            'verified_by' => auth()->id(),
+            'verified_at' => now(),
+            'verification_note' => $data['verification_note'] ?? null,
+        ]);
+
+        AuditLog::create([
+            'company_id' => $payment->company_id,
+            'user_id' => auth()->id(),
+            'action' => 'payment_'.$status,
+            'module' => 'Payments and Revenue',
+            'auditable_type' => Payment::class,
+            'auditable_id' => $payment->id,
+            'description' => ucfirst($status).' payment '.($payment->transaction_reference ?: '#'.$payment->id),
+            'old_values' => $old,
+            'new_values' => $payment->only(['status', 'verified_by', 'verified_at', 'verification_note']),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return back()->with('success', 'Payment status updated.');
+    }
+}

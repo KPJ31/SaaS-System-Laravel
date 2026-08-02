@@ -31,7 +31,10 @@ class CompanyRegistrationController extends Controller
         $superAdmins = User::where('role', 'super_admin')->where('status', 'active')->get();
         Notification::send($superAdmins, new CompanyRegistrationReceived($data['company_name']));
 
-        return redirect()->route('company.register.submitted');
+        return redirect()
+            ->route('company.register.submitted')
+            ->with('company_registration_email', $data['admin_email'])
+            ->with('success', 'Your company registration request was submitted for review.');
     }
 
     public function submitted(): View

@@ -1,10 +1,13 @@
 @php
     $class = match ($status) {
-        'active', 'approved', 'received', 'done' => 'success',
-        'pending', 'planning', 'todo' => 'warning',
-        'suspended', 'rejected', 'overdue' => 'danger',
+        'active', 'approved', 'received', 'done', 'completed', 'paid', 'trialing' => 'success',
+        'pending', 'planning', 'todo', 'in_progress', 'draft', 'unpaid' => 'warning',
+        'suspended', 'rejected', 'overdue', 'cancelled', 'inactive', 'expired' => 'danger',
         default => 'info',
     };
 @endphp
 
-<span class="status-badge status-{{ $class }}">{{ str_replace('_', ' ', $status) }}</span>
+<span class="status-badge status-{{ $class }}">
+    <span aria-hidden="true"></span>
+    {{ str_replace('_', ' ', $status) }}
+</span>

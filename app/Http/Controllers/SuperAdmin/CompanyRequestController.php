@@ -8,12 +8,15 @@ use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\CompanyRegistrationRequest;
 use App\Models\CompanySetting;
+use App\Models\Subscription;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Notifications\CompanyRegistrationApproved;
 use App\Notifications\CompanyRegistrationRejected;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CompanyRequestController extends Controller
@@ -39,6 +42,7 @@ class CompanyRequestController extends Controller
         DB::transaction(function () use ($companyRequest): void {
             $company = Company::create([
                 'name' => $companyRequest->company_name,
+                'slug' => Str::slug($companyRequest->company_name).'-'.Str::lower(Str::random(5)),
                 'email' => $companyRequest->company_email,
                 'phone' => $companyRequest->company_phone,
                 'address' => $companyRequest->company_address,
@@ -48,6 +52,17 @@ class CompanyRequestController extends Controller
             ]);
 
             CompanySetting::create(['company_id' => $company->id]);
+            $plan = $this->defaultPlan();
+
+            Subscription::create([
+                'company_id' => $company->id,
+                'subscription_plan_id' => $plan->id,
+                'status' => $plan->trial_days > 0 ? 'trialing' : 'active',
+                'starts_at' => now()->toDateString(),
+                'trial_ends_at' => $plan->trial_days > 0 ? now()->addDays($plan->trial_days)->toDateString() : null,
+                'renews_at' => now()->addMonth()->toDateString(),
+                'monthly_price' => $plan->monthly_price,
+            ]);
 
             $admin = User::create([
                 'company_id' => $company->id,
@@ -72,12 +87,33 @@ class CompanyRequestController extends Controller
                 'auditable_type' => CompanyRegistrationRequest::class,
                 'auditable_id' => $companyRequest->id,
                 'description' => 'Approved company registration for '.$company->name,
+                'metadata' => ['subscription_plan' => $plan->name],
             ]);
 
             $admin->notify(new CompanyRegistrationApproved($company->name, $admin->username));
         });
 
         return redirect()->route('super-admin.company-requests.index')->with('success', 'Company request approved successfully.');
+    }
+
+    private function defaultPlan(): SubscriptionPlan
+    {
+        return SubscriptionPlan::where('status', 'active')->orderBy('display_order')->first()
+            ?? SubscriptionPlan::create([
+                'name' => 'Starter',
+                'slug' => 'starter',
+                'description' => 'Default starter plan for newly approved companies.',
+                'monthly_price' => 49,
+                'annual_price' => 499,
+                'employee_limit' => 10,
+                'client_limit' => 25,
+                'project_limit' => 20,
+                'storage_limit_mb' => 2048,
+                'trial_days' => 14,
+                'features' => ['Company dashboard', 'Projects and tasks', 'Invoices and payments'],
+                'status' => 'active',
+                'display_order' => 1,
+            ]);
     }
 
     public function reject(RejectCompanyRequest $request, CompanyRegistrationRequest $companyRequest): RedirectResponse

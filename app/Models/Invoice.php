@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = ['company_id', 'client_id', 'project_id', 'invoice_number', 'issue_date', 'due_date', 'subtotal', 'tax', 'total', 'status'];
 
     protected function casts(): array

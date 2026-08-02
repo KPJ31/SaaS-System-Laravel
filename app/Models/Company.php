@@ -13,6 +13,7 @@ class Company extends Model
 
     protected $fillable = [
         'name',
+        'slug',
         'email',
         'phone',
         'address',
@@ -64,5 +65,15 @@ class Company extends Model
     public function setting(): HasOne
     {
         return $this->hasOne(CompanySetting::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)->whereIn('status', ['trialing', 'active'])->latestOfMany();
     }
 }
