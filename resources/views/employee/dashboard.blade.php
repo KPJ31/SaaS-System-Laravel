@@ -48,6 +48,35 @@
     @endforeach
 </div>
 
+@if(auth()->user()->can('projects.view') || auth()->user()->can('employees.view') || auth()->user()->can('tasks.view') || auth()->user()->can('clients.view') || auth()->user()->can('payments.view') || auth()->user()->can('reports.view'))
+    <div class="stat-grid">
+        @can('projects.view')
+            @include('partials.stat-card', ['label' => 'Company Projects', 'value' => $stats['companyTotalProjects'], 'icon' => 'fa-diagram-project'])
+            @include('partials.stat-card', ['label' => 'Active Company Projects', 'value' => $stats['companyActiveProjects'], 'icon' => 'fa-bolt', 'tone' => 'blue'])
+            @include('partials.stat-card', ['label' => 'Completed Company Projects', 'value' => $stats['companyCompletedProjects'], 'icon' => 'fa-circle-check', 'tone' => 'green'])
+        @endcan
+        @can('employees.view')
+            @include('partials.stat-card', ['label' => 'Company Employees', 'value' => $stats['companyTotalEmployees'], 'icon' => 'fa-users'])
+            @include('partials.stat-card', ['label' => 'Active Employees', 'value' => $stats['companyActiveEmployees'], 'icon' => 'fa-user-check', 'tone' => 'green'])
+        @endcan
+        @can('tasks.view')
+            @include('partials.stat-card', ['label' => 'Company Tasks', 'value' => $stats['companyTotalTasks'], 'icon' => 'fa-list-check'])
+            @include('partials.stat-card', ['label' => 'Pending Company Tasks', 'value' => $stats['companyPendingTasks'], 'icon' => 'fa-hourglass-half', 'tone' => 'yellow'])
+            @include('partials.stat-card', ['label' => 'Company Overdue Tasks', 'value' => $stats['companyOverdueTasks'], 'icon' => 'fa-triangle-exclamation', 'tone' => 'yellow'])
+        @endcan
+        @can('clients.view')
+            @include('partials.stat-card', ['label' => 'Company Clients', 'value' => $stats['companyClients'], 'icon' => 'fa-handshake'])
+        @endcan
+        @can('payments.view')
+            @include('partials.stat-card', ['label' => 'Pending Payments', 'value' => $stats['pendingPayments'], 'icon' => 'fa-credit-card', 'tone' => 'yellow'])
+            @include('partials.stat-card', ['label' => 'Paid Payments', 'value' => $stats['paidPayments'], 'icon' => 'fa-sack-dollar', 'tone' => 'green'])
+        @endcan
+        @can('reports.view')
+            @include('partials.stat-card', ['label' => 'Reports', 'value' => 'Open', 'icon' => 'fa-chart-pie', 'tone' => 'blue'])
+        @endcan
+    </div>
+@endif
+
 <div class="content-grid">
     <section class="content-card">
         <div class="content-card-header"><div><h2>Assigned Tasks</h2><p>Recently assigned work.</p></div></div>

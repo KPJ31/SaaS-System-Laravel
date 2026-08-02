@@ -13,6 +13,7 @@ use App\Models\ProjectRequest;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkSession;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -26,6 +27,8 @@ class DashboardController extends Controller
         return view('company-admin.dashboard', [
             'clientsCount' => Client::where('company_id', $companyId)->count(),
             'employeesCount' => User::where('company_id', $companyId)->where('role', 'employee')->count(),
+            'employeesWithPermissionsCount' => User::where('company_id', $companyId)->where('role', 'employee')->has('permissions')->count(),
+            'employeesWithoutPermissionsCount' => User::where('company_id', $companyId)->where('role', 'employee')->doesntHave('permissions')->count(),
             'activeEmployeesCount' => User::where('company_id', $companyId)->where('role', 'employee')->where('status', 'active')->count(),
             'suspendedEmployeesCount' => User::where('company_id', $companyId)->where('role', 'employee')->where('status', 'suspended')->count(),
             'projectsCount' => Project::where('company_id', $companyId)->count(),
@@ -53,6 +56,22 @@ class DashboardController extends Controller
             'feedback' => Feedback::with(['client', 'project'])->where('company_id', $companyId)->latest()->take(5)->get(),
             'leaveRequests' => LeaveRequest::with('user')->where('company_id', $companyId)->latest()->take(5)->get(),
             'latestActivities' => \App\Models\AuditLog::with('user')->where('company_id', $companyId)->latest()->take(6)->get(),
+            'recentPermissionUpdates' => \App\Models\AuditLog::with('user')
+                ->where('company_id', $companyId)
+                ->where('module', 'employee-permissions')
+                ->latest()
+                ->take(5)
+                ->get(),
+            'topPermissionModules' => DB::table('permission_user')
+                ->join('permissions', 'permissions.id', '=', 'permission_user.permission_id')
+                ->join('users', 'users.id', '=', 'permission_user.user_id')
+                ->where('users.company_id', $companyId)
+                ->where('users.role', 'employee')
+                ->select('permissions.module', DB::raw('count(*) as total'))
+                ->groupBy('permissions.module')
+                ->orderByDesc('total')
+                ->take(5)
+                ->get(),
             'chartData' => [
                 'projectStatusLabels' => Project::where('company_id', $companyId)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('status')->values(),
                 'projectStatusValues' => Project::where('company_id', $companyId)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total')->values(),

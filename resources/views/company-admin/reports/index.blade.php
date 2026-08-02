@@ -29,6 +29,9 @@
         'feedback' => ['Feedback Report', 'Client ratings and feedback status.', 'fa-star'],
     ];
 @endphp
+@php
+    $reportRoutePrefix = auth()->user()->role === 'employee' ? 'employee.reports' : 'company-admin.reports';
+@endphp
 
 <div class="content-grid">
     <section class="content-card">
@@ -54,9 +57,11 @@
                             <td>{{ $description }}</td>
                             <td>
                                 <div class="table-actions">
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.reports.show', $key) }}"><i class="fa-regular fa-eye"></i>View</a>
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.reports.export', $key) }}"><i class="fa-solid fa-file-csv"></i>CSV</a>
-                                    <a class="btn btn-sm btn-primary" href="{{ route('company-admin.reports.pdf', $key) }}"><i class="fa-solid fa-file-pdf"></i>PDF</a>
+                                    <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.show', $key) }}"><i class="fa-regular fa-eye"></i>View</a>
+                                    @can('reports.export')
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.export', $key) }}"><i class="fa-solid fa-file-csv"></i>CSV</a>
+                                        <a class="btn btn-sm btn-primary" href="{{ route($reportRoutePrefix.'.pdf', $key) }}"><i class="fa-solid fa-file-pdf"></i>PDF</a>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

@@ -22,6 +22,7 @@
             ['Dashboard', 'fa-gauge-high', route('company-admin.dashboard'), request()->routeIs('company-admin.dashboard'), null],
             ['Company Profile', 'fa-building', route('company-admin.company-profile.show'), request()->routeIs('company-admin.company-profile.*'), null],
             ['Employees', 'fa-users', route('company-admin.employees.index'), request()->routeIs('company-admin.employees.*'), \App\Models\User::where('company_id', auth()->user()->company_id)->where('role', 'employee')->where('status', 'pending')->count()],
+            ['Employee Permissions', 'fa-shield-halved', route('company-admin.employees.permissions.index'), request()->routeIs('company-admin.employees.permissions.*'), null],
             ['Clients', 'fa-handshake', route('company-admin.clients.index'), request()->routeIs('company-admin.clients.*'), null],
             ['Project Requests', 'fa-inbox', route('company-admin.project-requests.index'), request()->routeIs('company-admin.project-requests.*'), \App\Models\ProjectRequest::where('company_id', auth()->user()->company_id)->whereIn('status', ['pending', 'under_review'])->count()],
             ['Projects', 'fa-diagram-project', route('company-admin.projects.index'), request()->routeIs('company-admin.projects.*'), null],
@@ -39,7 +40,7 @@
             ['Company Settings', 'fa-sliders', route('company-admin.settings.index'), request()->routeIs('company-admin.settings.*'), null],
             ['My Profile', 'fa-user', route('company-admin.profile.show'), request()->routeIs('company-admin.profile.*'), null],
         ],
-        default => [
+        default => array_values(array_filter([
             ['Dashboard', 'fa-gauge-high', route('employee.dashboard'), request()->routeIs('employee.dashboard'), null],
             ['My Projects', 'fa-diagram-project', route('employee.projects.index'), request()->routeIs('employee.projects.*'), null],
             ['My Tasks', 'fa-list-check', route('employee.tasks.index'), request()->routeIs('employee.tasks.*'), \App\Models\Task::where('company_id', auth()->user()->company_id)->where('assignee_id', auth()->id())->whereIn('status', ['todo', 'assigned', 'in_progress', 'paused', 'blocked'])->count()],
@@ -48,11 +49,13 @@
             ['My Documents', 'fa-folder-open', route('employee.documents.index'), request()->routeIs('employee.documents.*'), null],
             ['Leave Requests', 'fa-calendar-check', route('employee.leave-requests.index'), request()->routeIs('employee.leave-requests.*'), \App\Models\LeaveRequest::where('company_id', auth()->user()->company_id)->where('user_id', auth()->id())->where('status', 'pending')->count()],
             ['Performance', 'fa-chart-line', route('employee.performance.index'), request()->routeIs('employee.performance.*'), null],
+            auth()->user()->can('clients.view') ? ['Clients', 'fa-handshake', route('employee.clients.index'), request()->routeIs('employee.clients.*'), null] : null,
+            auth()->user()->can('reports.view') ? ['Reports and Analytics', 'fa-chart-pie', route('employee.reports.index'), request()->routeIs('employee.reports.*'), null] : null,
             ['Notifications', 'fa-bell', route('employee.notifications.index'), request()->routeIs('employee.notifications.*'), auth()->user()->unreadNotifications()->count()],
             ['Activity History', 'fa-clipboard-list', route('employee.activity.index'), request()->routeIs('employee.activity.*'), null],
             ['My Profile', 'fa-user', route('employee.profile.show'), request()->routeIs('employee.profile.*'), null],
             ['Change Password', 'fa-key', route('employee.password.edit'), request()->routeIs('employee.password.*'), null],
-        ],
+        ])),
     };
 @endphp
 

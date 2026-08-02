@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Client;
 use App\Models\LeaveRequest;
+use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\WorkSession;
@@ -47,6 +49,17 @@ class DashboardController extends Controller
                 'pendingLeaves' => LeaveRequest::where('company_id', $user->company_id)->where('user_id', $user->id)->where('status', 'pending')->count(),
                 'approvedLeaves' => LeaveRequest::where('company_id', $user->company_id)->where('user_id', $user->id)->where('status', 'approved')->count(),
                 'performanceScore' => $score,
+                'companyTotalProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->count() : null,
+                'companyActiveProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->whereIn('status', ['active', 'in_progress', 'testing'])->count() : null,
+                'companyCompletedProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->where('status', 'completed')->count() : null,
+                'companyTotalEmployees' => $user->can('employees.view') ? \App\Models\User::where('company_id', $user->company_id)->where('role', 'employee')->count() : null,
+                'companyActiveEmployees' => $user->can('employees.view') ? \App\Models\User::where('company_id', $user->company_id)->where('role', 'employee')->where('status', 'active')->count() : null,
+                'companyTotalTasks' => $user->can('tasks.view') ? Task::where('company_id', $user->company_id)->count() : null,
+                'companyPendingTasks' => $user->can('tasks.view') ? Task::where('company_id', $user->company_id)->whereIn('status', ['todo', 'assigned'])->count() : null,
+                'companyOverdueTasks' => $user->can('tasks.view') ? Task::where('company_id', $user->company_id)->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled'])->count() : null,
+                'companyClients' => $user->can('clients.view') ? Client::where('company_id', $user->company_id)->count() : null,
+                'pendingPayments' => $user->can('payments.view') ? Payment::where('company_id', $user->company_id)->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count() : null,
+                'paidPayments' => $user->can('payments.view') ? Payment::where('company_id', $user->company_id)->whereIn('status', ['paid', 'received', 'verified'])->count() : null,
             ],
             'tasks' => (clone $tasksQuery)->with('project')->latest()->take(8)->get(),
             'todayTasks' => (clone $tasksQuery)->with('project')->whereDate('due_date', today())->latest()->take(6)->get(),

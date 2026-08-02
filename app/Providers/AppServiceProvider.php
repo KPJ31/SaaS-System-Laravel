@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Support\PermissionCatalog;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        foreach (array_merge(
+            PermissionCatalog::assignableNames(),
+            PermissionCatalog::basicEmployeeNames(),
+            PermissionCatalog::platformNames(),
+        ) as $permission) {
+            Gate::define($permission, fn ($user): bool => $user->hasCompanyPermission($permission));
+        }
     }
 }

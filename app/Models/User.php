@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use App\Models\Permission;
+use App\Support\PermissionCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -47,6 +49,46 @@ class User extends Authenticatable
     public function projects(): BelongsToMany
     {
         return $this->belongsToMany(Project::class)->withTimestamps();
+    }
+
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class)->withTimestamps();
+    }
+
+    public function hasDirectPermission(string $permission): bool
+    {
+        if ($this->relationLoaded('permissions')) {
+            return $this->permissions->contains('name', $permission);
+        }
+
+        return $this->permissions()->where('name', $permission)->exists();
+    }
+
+    public function hasCompanyPermission(string $permission): bool
+    {
+        if ($this->role === 'super_admin') {
+            return true;
+        }
+
+        if ($this->role === 'company_admin') {
+            return PermissionCatalog::isCompanyPermission($permission);
+        }
+
+        if ($this->role !== 'employee' || $this->status !== 'active') {
+            return false;
+        }
+
+        return in_array($permission, PermissionCatalog::basicEmployeeNames(), true)
+            || $this->hasDirectPermission($permission);
+    }
+
+    public function syncDirectPermissions(array $permissionNames): void
+    {
+        $ids = Permission::whereIn('name', $permissionNames)->pluck('id');
+
+        $this->permissions()->sync($ids);
+        $this->unsetRelation('permissions');
     }
 
     public function assignedTasks(): HasMany

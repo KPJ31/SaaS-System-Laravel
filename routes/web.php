@@ -12,6 +12,7 @@ use App\Http\Controllers\CompanyAdmin\DashboardController as CompanyAdminDashboa
 use App\Http\Controllers\CompanyAdmin\CompanyProfileController;
 use App\Http\Controllers\CompanyAdmin\DocumentController as CompanyAdminDocumentController;
 use App\Http\Controllers\CompanyAdmin\EmployeeController;
+use App\Http\Controllers\CompanyAdmin\EmployeePermissionController;
 use App\Http\Controllers\CompanyAdmin\FeedbackController as CompanyAdminFeedbackController;
 use App\Http\Controllers\CompanyAdmin\InvoiceController as CompanyAdminInvoiceController;
 use App\Http\Controllers\CompanyAdmin\LeaveRequestController as CompanyAdminLeaveRequestController;
@@ -130,6 +131,11 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
     Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
 
     Route::resource('employees', EmployeeController::class);
+    Route::get('/employee-permissions', [EmployeePermissionController::class, 'index'])->name('employees.permissions.index');
+    Route::get('/employees/{employee}/permissions', [EmployeePermissionController::class, 'edit'])->name('employees.permissions.edit');
+    Route::put('/employees/{employee}/permissions', [EmployeePermissionController::class, 'update'])->name('employees.permissions.update');
+    Route::post('/employees/{employee}/permissions/reset', [EmployeePermissionController::class, 'reset'])->name('employees.permissions.reset');
+    Route::post('/employees/{employee}/permissions/copy', [EmployeePermissionController::class, 'copy'])->name('employees.permissions.copy');
     Route::post('/employees/{employee}/{status}', [EmployeeController::class, 'updateStatus'])->name('employees.status');
     Route::post('/employees/{employee}/password-reset', [EmployeeController::class, 'sendPasswordReset'])->name('employees.password-reset');
 
@@ -201,6 +207,12 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
 
 Route::middleware(['auth', 'role:employee', 'employee.active', 'company.approved', 'subscription.active'])->prefix('employee')->name('employee.')->group(function (): void {
     Route::get('/dashboard', EmployeeDashboardController::class)->name('dashboard');
+    Route::get('/clients', [CompanyAdminClientController::class, 'index'])->middleware('permission:clients.view')->name('clients.index');
+    Route::get('/clients/{client}', [CompanyAdminClientController::class, 'show'])->middleware('permission:clients.view')->name('clients.show');
+    Route::get('/reports', [CompanyAdminReportController::class, 'index'])->middleware('permission:reports.view')->name('reports.index');
+    Route::get('/reports/export/{report}', [CompanyAdminReportController::class, 'export'])->middleware('permission:reports.export')->name('reports.export');
+    Route::get('/reports/pdf/{report}', [CompanyAdminReportController::class, 'exportPdf'])->middleware('permission:reports.export')->name('reports.pdf');
+    Route::get('/reports/{report}', [CompanyAdminReportController::class, 'show'])->middleware('permission:reports.view')->name('reports.show');
     Route::get('/projects', [EmployeeProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/{project}', [EmployeeProjectController::class, 'show'])->name('projects.show');
     Route::get('/tasks', [EmployeeTaskController::class, 'index'])->name('tasks.index');

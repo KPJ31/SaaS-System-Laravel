@@ -12,6 +12,8 @@
 <div class="stat-grid">
     @include('partials.stat-card', ['label' => 'Clients', 'value' => $clientsCount, 'icon' => 'fa-handshake'])
     @include('partials.stat-card', ['label' => 'Employees', 'value' => $employeesCount, 'icon' => 'fa-users', 'tone' => 'blue'])
+    @include('partials.stat-card', ['label' => 'With Extra Permissions', 'value' => $employeesWithPermissionsCount, 'icon' => 'fa-shield-halved', 'tone' => 'green'])
+    @include('partials.stat-card', ['label' => 'No Extra Permissions', 'value' => $employeesWithoutPermissionsCount, 'icon' => 'fa-user-lock', 'tone' => 'yellow'])
     @include('partials.stat-card', ['label' => 'Projects', 'value' => $projectsCount, 'icon' => 'fa-diagram-project', 'tone' => 'green'])
     @include('partials.stat-card', ['label' => 'Tasks', 'value' => $tasksCount, 'icon' => 'fa-list-check', 'tone' => 'yellow'])
     @include('partials.stat-card', ['label' => 'Pending Requests', 'value' => $pendingRequestsCount, 'icon' => 'fa-inbox', 'tone' => 'yellow'])
@@ -31,6 +33,7 @@
         </div>
         <div class="page-header-actions">
             <a class="btn btn-primary" href="{{ route('company-admin.employees.create') }}"><i class="fa-solid fa-user-plus"></i>Add employee</a>
+            <a class="btn btn-outline-primary" href="{{ route('company-admin.employees.permissions.index') }}"><i class="fa-solid fa-shield-halved"></i>Manage Employee Permissions</a>
             <a class="btn btn-outline-primary" href="{{ route('company-admin.clients.create') }}"><i class="fa-solid fa-handshake"></i>Add client</a>
             <a class="btn btn-outline-primary" href="{{ route('company-admin.projects.create') }}"><i class="fa-solid fa-diagram-project"></i>Create project</a>
             <a class="btn btn-outline-primary" href="{{ route('company-admin.tasks.create') }}"><i class="fa-solid fa-list-check"></i>Create task</a>
@@ -38,6 +41,29 @@
             <a class="btn btn-outline-primary" href="{{ route('company-admin.reports.index') }}"><i class="fa-solid fa-chart-pie"></i>Reports</a>
         </div>
     </div>
+</div>
+
+<div class="content-grid mb-3">
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Permission Modules</h2><p>Most assigned employee permission groups.</p></div></div>
+        <div class="activity-list">
+            @forelse($topPermissionModules as $module)
+                <div><strong>{{ str_replace('-', ' ', ucfirst($module->module)) }}</strong><span>{{ $module->total }} assigned permissions</span></div>
+            @empty
+                @include('partials.empty-state', ['icon' => 'fa-shield-halved', 'title' => 'No extra permissions', 'message' => 'Assigned employee permissions will appear here.'])
+            @endforelse
+        </div>
+    </section>
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Recent Permission Updates</h2><p>Latest changes made by company admins.</p></div></div>
+        <div class="activity-list">
+            @forelse($recentPermissionUpdates as $activity)
+                <div><strong>{{ str_replace('_', ' ', $activity->action) }}</strong><span>{{ $activity->description }} | {{ $activity->created_at->diffForHumans() }}</span></div>
+            @empty
+                @include('partials.empty-state', ['icon' => 'fa-clipboard-list', 'title' => 'No permission updates', 'message' => 'Permission audit records will appear here.'])
+            @endforelse
+        </div>
+    </section>
 </div>
 
 <div class="content-grid mb-3">
