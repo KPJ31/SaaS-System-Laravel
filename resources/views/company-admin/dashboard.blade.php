@@ -6,7 +6,7 @@
 @include('partials.page-header', [
     'eyebrow' => auth()->user()->company->name,
     'title' => 'Welcome back, '.auth()->user()->name.'.',
-    'description' => 'Review your company workspace, recent projects and latest assigned work.',
+    'description' => 'Review employees, clients, project delivery, payments, invoices and recent activity for your company.',
 ])
 
 <div class="stat-grid">
@@ -14,6 +14,38 @@
     @include('partials.stat-card', ['label' => 'Employees', 'value' => $employeesCount, 'icon' => 'fa-users', 'tone' => 'blue'])
     @include('partials.stat-card', ['label' => 'Projects', 'value' => $projectsCount, 'icon' => 'fa-diagram-project', 'tone' => 'green'])
     @include('partials.stat-card', ['label' => 'Tasks', 'value' => $tasksCount, 'icon' => 'fa-list-check', 'tone' => 'yellow'])
+    @include('partials.stat-card', ['label' => 'Pending Requests', 'value' => $pendingRequestsCount, 'icon' => 'fa-inbox', 'tone' => 'yellow'])
+    @include('partials.stat-card', ['label' => 'Overdue Tasks', 'value' => $overdueTasksCount, 'icon' => 'fa-triangle-exclamation'])
+    @include('partials.stat-card', ['label' => 'Today Hours', 'value' => number_format($todayWorkMinutes / 60, 1), 'icon' => 'fa-clock', 'tone' => 'blue'])
+    @include('partials.stat-card', ['label' => 'Monthly Revenue', 'value' => '$'.number_format($monthlyRevenue, 2), 'icon' => 'fa-money-bill-trend-up', 'tone' => 'green'])
+</div>
+
+<div class="content-card mb-3">
+    <div class="page-header mb-0">
+        <div class="page-header-copy">
+            <span>Quick Actions</span>
+            <h1>Common Workflows</h1>
+        </div>
+        <div class="page-header-actions">
+            <a class="btn btn-primary" href="{{ route('company-admin.employees.create') }}"><i class="fa-solid fa-user-plus"></i>Add employee</a>
+            <a class="btn btn-outline-primary" href="{{ route('company-admin.clients.create') }}"><i class="fa-solid fa-handshake"></i>Add client</a>
+            <a class="btn btn-outline-primary" href="{{ route('company-admin.projects.create') }}"><i class="fa-solid fa-diagram-project"></i>Create project</a>
+            <a class="btn btn-outline-primary" href="{{ route('company-admin.tasks.create') }}"><i class="fa-solid fa-list-check"></i>Create task</a>
+            <a class="btn btn-outline-primary" href="{{ route('company-admin.payments.create') }}"><i class="fa-solid fa-credit-card"></i>Payment request</a>
+            <a class="btn btn-outline-primary" href="{{ route('company-admin.reports.index') }}"><i class="fa-solid fa-chart-pie"></i>Reports</a>
+        </div>
+    </div>
+</div>
+
+<div class="content-grid mb-3">
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Project Status</h2><p>Distribution by current project state.</p></div></div>
+        <canvas data-chart="companyProjectStatus" height="140"></canvas>
+    </section>
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Task Status</h2><p>Delivery load across task workflow stages.</p></div></div>
+        <canvas data-chart="companyTaskStatus" height="140"></canvas>
+    </section>
 </div>
 
 <div class="content-grid">
@@ -70,4 +102,51 @@
         </div>
     </section>
 </div>
+
+<div class="content-grid mt-3">
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Recent Project Requests</h2><p>Newest requests waiting for review or conversion.</p></div></div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead><tr><th>Request</th><th>Client</th><th>Status</th></tr></thead>
+                <tbody>
+                    @forelse($projectRequests as $requestItem)
+                        <tr>
+                            <td>{{ $requestItem->title }}<small>{{ $requestItem->service_type ?? 'General' }}</small></td>
+                            <td>{{ $requestItem->client?->name ?? 'No client' }}</td>
+                            <td>@include('partials.status-badge', ['status' => $requestItem->status])</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3" class="empty-cell">No project requests yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="content-card">
+        <div class="content-card-header"><div><h2>Recent Payments</h2><p>Latest client project payment records.</p></div></div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead><tr><th>Client</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody>
+                    @forelse($payments as $payment)
+                        <tr>
+                            <td>{{ $payment->client?->name ?? 'Client payment' }}<small>{{ $payment->project?->name }}</small></td>
+                            <td>${{ number_format($payment->amount, 2) }}</td>
+                            <td>@include('partials.status-badge', ['status' => $payment->status])</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3" class="empty-cell">No payments yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@push('scripts')
+<script>
+    window.elevanixCompanyCharts = @json($chartData);
+</script>
+@endpush
 @endsection

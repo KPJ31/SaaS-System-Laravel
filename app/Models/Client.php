@@ -11,7 +11,7 @@ class Client extends Model
 {
     use BelongsToCompany;
 
-    protected $fillable = ['company_id', 'name', 'email', 'phone', 'company_name', 'address', 'status'];
+    protected $fillable = ['company_id', 'name', 'email', 'phone', 'company_name', 'address', 'status', 'notes'];
 
     public function company(): BelongsTo
     {
@@ -26,5 +26,15 @@ class Client extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function projectRequests(): HasMany
+    {
+        return $this->hasMany(ProjectRequest::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 }

@@ -13,10 +13,15 @@ return new class extends Migration
             $table->foreignId('company_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('action');
+            $table->string('module')->nullable()->index();
             $table->string('auditable_type')->nullable();
             $table->unsignedBigInteger('auditable_id')->nullable();
             $table->text('description')->nullable();
+            $table->json('old_values')->nullable();
+            $table->json('new_values')->nullable();
             $table->json('metadata')->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
             $table->timestamps();
 
             $table->index(['company_id', 'action']);

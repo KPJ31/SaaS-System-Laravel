@@ -1,21 +1,28 @@
-# Elevanix - Smart Software Company Management System
+# Elevanix ESSCMS - Smart Software Company Management System
 
-Elevanix, abbreviated as ESSCMS, is a Laravel 13 multi-company SaaS management system foundation for company registration approval, subscription plans, role-based access, dashboards, clients, projects, tasks, work sessions, invoices, payments, notifications and audit logs.
+Elevanix ESSCMS is a Laravel 13 multi-company SaaS management system for software companies. It supports public company registration, Super Admin approval, subscription plans, company workspaces, employees, clients, project requests, projects, tasks, work sessions, invoices, payments, feedback, reports, notifications, audit logs, and settings.
 
-Super Admin controls the SaaS platform, company approvals and subscription plans. Company users work inside one approved company and require an active or trialing subscription.
+Super Admin manages the SaaS platform. Company Admin and Employee users work inside one approved company and require an active or trialing subscription.
 
 ## Technology Stack
 
-- Laravel 13
+- Laravel 13.8
 - PHP 8.3+
-- Blade
-- Bootstrap 5
-- Vanilla JavaScript
 - MySQL
-- SweetAlert2
-- Font Awesome
+- Blade
+- Bootstrap-oriented custom CSS
+- Vanilla JavaScript
 - Laravel Mail and Notifications
-- Pest for tests
+- Laravel password reset
+- Laravel database notifications
+- DomPDF for PDF exports
+- Pest for automated tests
+- Vite for frontend build tooling
+
+Custom application CSS and JavaScript are loaded from:
+
+- `public/assets/css/app.css`
+- `public/assets/js/app.js`
 
 ## Requirements
 
@@ -33,7 +40,7 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Update `.env` with your local database and mail credentials. Do not commit real secrets.
+Update `.env` with your local database, app URL, mail, queue, and filesystem settings. Do not commit real secrets.
 
 ```bash
 php artisan migrate --seed
@@ -41,30 +48,32 @@ php artisan storage:link
 php artisan serve
 ```
 
-Custom CSS and JavaScript are loaded directly from `public/assets/css/app.css` and `public/assets/js/app.js`.
-
-## Queue And Mail
-
-Mail uses Laravel's configured mail driver. The real `.env` may contain working SMTP credentials; keep them private.
-
-For queued jobs:
+On Windows PowerShell, use this for the production asset build:
 
 ```bash
-php artisan queue:listen
+npm.cmd run build
 ```
 
-## Testing
+## Useful Commands
 
 ```bash
+php artisan serve
+php artisan queue:listen
+php artisan migrate:fresh --seed
+php artisan route:list
 php artisan test
 npm.cmd run build
 ```
 
-The test environment uses in-memory SQLite from `phpunit.xml`.
+Composer also includes a development script that runs the server, queue listener, and Vite together:
+
+```bash
+composer run dev
+```
 
 ## Demo Accounts
 
-After running the seeder:
+After running the seeders:
 
 - Super Admin: `superadmin` or `superadmin@elevanix.test` / `Password@123`
 - Company Admin: `novastack_admin` or `admin@novastack.test` / `Password@123`
@@ -72,13 +81,167 @@ After running the seeder:
 - Employee: `maya` or `employee1@elevanix.test` / `Password@123`
 - Employee: `arun` or `employee2@elevanix.test` / `Password@123`
 
-Seeded subscription plans:
+## User Roles
 
-- Starter
-- Professional
-- Enterprise
+- `super_admin`: Platform owner role.
+- `company_admin`: Company workspace administrator.
+- `employee`: Company staff member.
 
-Seeder files are split by section:
+## Status Values
+
+Company statuses:
+
+- `pending`
+- `active`
+- `suspended`
+- `rejected`
+- `expired`
+
+User statuses:
+
+- `active`
+- `inactive`
+- `suspended`
+
+Subscription statuses:
+
+- `trialing`
+- `active`
+- `past_due`
+- `expired`
+- `cancelled`
+
+Request statuses:
+
+- `pending`
+- `approved`
+- `rejected`
+
+## Main Features
+
+Public and Auth:
+
+- Landing page
+- Company registration request
+- Registration submitted confirmation
+- Email or username login
+- Forgot password
+- Reset password
+- POST-only logout
+- Role-based dashboard redirect
+
+Super Admin:
+
+- Dashboard
+- Company registration request approval/rejection
+- Company list, details, edit, activation, and suspension
+- Subscription plan CRUD and activation/deactivation
+- Company subscription list, details, update, and status management
+- Platform user list, details, status management, and password reset email
+- Payment review and status management
+- Reports with CSV/PDF export
+- Notifications
+- Audit logs
+- System settings
+- Profile and password update
+
+Company Admin:
+
+- Dashboard
+- Company profile view/edit
+- Employee CRUD, status management, and password reset email
+- Client CRUD and status management
+- Project request review, approve, reject, update, and convert to project
+- Project CRUD
+- Employee assignment/removal for projects
+- Task CRUD and status updates
+- Work session list and CSV export
+- Payment CRUD, verification, and rejection
+- Invoice CRUD, print, send, and mark paid
+- Feedback moderation
+- Notifications
+- Reports with CSV/PDF export
+- Activity logs
+- Company settings
+- Profile and password update
+
+Employee:
+
+- Employee dashboard
+- Assigned task overview
+- Recent work session overview
+
+## Database Tables
+
+Core application tables:
+
+- `companies`
+- `company_registration_requests`
+- `users`
+- `clients`
+- `project_requests`
+- `projects`
+- `project_user`
+- `tasks`
+- `work_sessions`
+- `payments`
+- `invoices`
+- `invoice_items`
+- `audit_logs`
+- `company_settings`
+- `notifications`
+- `subscription_plans`
+- `subscriptions`
+- `system_settings`
+- `feedback`
+
+Laravel framework tables:
+
+- `password_reset_tokens`
+- `sessions`
+- `cache`
+- `cache_locks`
+- `jobs`
+- `job_batches`
+- `failed_jobs`
+
+Important schema note:
+
+The newer company admin and Super Admin fields have been merged into the original create-table migrations. Separate alteration migrations for company slug, audit log fields, company fields, project fields, task fields, client/request fields, invoice fields, and payment platform fields were removed so fresh installs create the full schema directly.
+
+## Seeded Subscription Plans
+
+Starter:
+
+- Monthly price: 49
+- Annual price: 499
+- Employee limit: 10
+- Client limit: 25
+- Project limit: 20
+- Storage limit: 2048 MB
+- Trial days: 14
+
+Professional:
+
+- Monthly price: 129
+- Annual price: 1290
+- Employee limit: 50
+- Client limit: 100
+- Project limit: 100
+- Storage limit: 10240 MB
+- Trial days: 14
+
+Enterprise:
+
+- Monthly price: 299
+- Annual price: 2990
+- Employee limit: 250
+- Client limit: 500
+- Project limit: 500
+- Storage limit: 102400 MB
+- Trial days: 30
+
+## Seeder Order
 
 - `SystemSettingSeeder`
 - `SubscriptionPlanSeeder`
@@ -93,49 +256,112 @@ Seeder files are split by section:
 - `CompanyRegistrationRequestSeeder`
 - `AuditLogSeeder`
 
-## Main Modules Implemented
+## Main Workflows
 
-- Public landing page
-- Email or username login
-- Forgot-password and reset-password pages
-- Public company registration request
-- Super Admin request approval and rejection
-- Subscription plans
-- Company subscriptions
+Company registration:
+
+1. Visitor submits company and admin details.
+2. System stores a pending registration request.
+3. Super Admin reviews the request.
+4. Approval creates the company, company admin, company settings, and subscription.
+5. Rejection stores a rejection reason and notifies the requester.
+
+Login:
+
+1. User logs in with email or username.
+2. System checks credentials, user status, role, company approval, and subscription.
+3. User is redirected to the correct dashboard.
+
+Company Admin operations:
+
+1. Company Admin manages employees, clients, projects, tasks, invoices, payments, and feedback.
+2. Records are scoped to the current company.
+3. Subscription limits protect employee, client, and project capacity.
+4. Reports and activity logs summarize company work.
+
+## Security
+
+- Password hashing through Laravel casts
+- Login rate limiting
+- Session regeneration after login
+- CSRF-protected forms
+- POST-only logout
 - Role middleware
 - Company approval middleware
 - Subscription active middleware
-- Super Admin dashboard
-- Company Admin dashboard
-- Employee dashboard
-- Company listing and activation/suspension
-- Subscription plan management
+- Tenant-aware policies for company-owned records
+- Work timer duplicate active session prevention
+- Audit metadata sanitization for passwords, tokens, secrets, and SMTP values
+- Company registration logo validation
+- Database transactions for approval/rejection workflows
+
+## Testing
+
+Run:
+
+```bash
+php artisan test
+```
+
+Current verified result:
+
+- 38 tests passed
+- 98 assertions passed
+
+The test environment uses in-memory SQLite from `phpunit.xml`.
+
+Test coverage includes:
+
+- Public pages
+- Login with email and username
+- Password reset pages
+- Inactive user blocking
+- Pending company blocking
+- Role access restrictions
+- Company registration
+- Super Admin approval/rejection
+- Subscription plan creation
+- Active subscription requirement
+- Tenant-scoped queries
+- Cross-company access denial
+- Employee access to assigned own-company work
+- Work timer duplicate prevention and stop duration
 - System settings storage
-- Tenant-aware policies for existing company-owned models
-- Work timer service with duplicate active timer prevention
-- Elevanix Blade layout, sidebar, navbar and logo
-- Database schema for core ESSCMS tables
-- Section-based demo seeders
 
-## Security Notes
+## Reports And Documentation
 
-- Authentication uses Laravel guards, hashed passwords and session regeneration.
-- Logout is POST only.
-- Role checks are enforced server-side.
-- Company users are blocked when their company is not active.
-- Company users are blocked from company workspaces when their subscription is not active or trialing.
-- Tenant policies deny cross-company access for the current client, project, task, work session, payment, invoice and employee models.
-- Work timer service validates company ownership and prevents duplicate active sessions.
-- Company registration stores uploaded logos on the public disk after image validation.
-- Real `.env` secrets must never be copied to documentation or source files.
+Project documentation files:
+
+- `README.md`
+- `IMPLEMENTATION_REPORT.md`
+- `TEST_REPORT.md`
+- `SYSTEM_EXPLANATION.txt`
 
 ## Deployment Checklist
 
 - Set `APP_ENV=production`
 - Set `APP_DEBUG=false`
-- Set a valid `APP_URL` including `http://` or `https://`
+- Set a valid `APP_URL`
 - Configure MySQL credentials
 - Configure SMTP credentials
+- Run `composer install --no-dev --optimize-autoloader`
+- Run `npm.cmd run build` or deploy prebuilt assets
 - Run `php artisan migrate --force`
 - Run `php artisan storage:link`
 - Configure queue workers if database notifications/jobs are queued
+- Set correct permissions for `storage` and `bootstrap/cache`
+- Verify login, company approval, company dashboard, invoice, payment, and report export
+
+## Future Improvements
+
+- Employee timer start/stop UI
+- Richer employee task/project pages
+- Client portal
+- Subscription billing integration
+- Plan upgrade/downgrade workflow
+- Subscription expiry reminders
+- Project document uploads/downloads
+- More dashboard charts
+- Branded email templates
+- Wider audit coverage
+- Two-factor authentication

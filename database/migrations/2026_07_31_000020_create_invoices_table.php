@@ -19,7 +19,10 @@ return new class extends Migration
             $table->decimal('subtotal', 12, 2)->default(0);
             $table->decimal('tax', 12, 2)->default(0);
             $table->decimal('total', 12, 2)->default(0);
+            $table->decimal('paid_amount', 12, 2)->default(0);
+            $table->decimal('balance_amount', 12, 2)->default(0);
             $table->string('status')->default('draft')->index();
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }

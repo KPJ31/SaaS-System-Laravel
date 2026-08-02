@@ -18,6 +18,10 @@ class Company extends Model
         'phone',
         'address',
         'website',
+        'business_type',
+        'description',
+        'timezone',
+        'date_format',
         'logo_path',
         'status',
     ];

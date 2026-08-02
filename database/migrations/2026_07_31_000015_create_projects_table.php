@@ -19,8 +19,12 @@ return new class extends Migration
             $table->string('status')->default('planning')->index();
             $table->date('start_date')->nullable();
             $table->date('due_date')->nullable();
+            $table->date('promised_end_date')->nullable();
+            $table->date('completed_date')->nullable();
             $table->decimal('budget', 12, 2)->nullable();
             $table->unsignedTinyInteger('progress')->default(0);
+            $table->string('priority')->default('medium')->index();
+            $table->text('notes')->nullable();
             $table->timestamps();
 
             $table->index(['company_id', 'status']);

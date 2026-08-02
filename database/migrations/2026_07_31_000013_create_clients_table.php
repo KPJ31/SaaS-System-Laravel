@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('company_name')->nullable();
             $table->text('address')->nullable();
             $table->string('status')->default('active')->index();
+            $table->text('notes')->nullable();
             $table->timestamps();
 
             $table->index(['company_id', 'status']);

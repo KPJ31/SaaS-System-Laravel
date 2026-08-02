@@ -22,8 +22,12 @@ class Project extends Model
         'status',
         'start_date',
         'due_date',
+        'promised_end_date',
+        'completed_date',
         'budget',
         'progress',
+        'priority',
+        'notes',
     ];
 
     protected function casts(): array
@@ -31,6 +35,9 @@ class Project extends Model
         return [
             'start_date' => 'date',
             'due_date' => 'date',
+            'promised_end_date' => 'date',
+            'completed_date' => 'date',
+            'budget' => 'decimal:2',
         ];
     }
 
@@ -57,5 +64,15 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 }

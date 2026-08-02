@@ -314,3 +314,24 @@ if (window.Chart && window.elevanixDashboardCharts) {
         });
     });
 }
+
+if (window.Chart && window.elevanixCompanyCharts) {
+    const data = window.elevanixCompanyCharts;
+    const colors = ['#6D28D9', '#8B5CF6', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6'];
+
+    const chart = (selector, labels, values) => {
+        const canvas = document.querySelector(selector);
+        if (!canvas) {
+            return;
+        }
+
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: { labels, datasets: [{ data: values, backgroundColor: colors }] },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+        });
+    };
+
+    chart('[data-chart="companyProjectStatus"]', data.projectStatusLabels, data.projectStatusValues);
+    chart('[data-chart="companyTaskStatus"]', data.taskStatusLabels, data.taskStatusValues);
+}

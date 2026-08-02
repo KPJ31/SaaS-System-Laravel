@@ -6,7 +6,22 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\CompanyRegistrationController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\PublicPageController;
+use App\Http\Controllers\CompanyAdmin\ActivityLogController as CompanyAdminActivityLogController;
+use App\Http\Controllers\CompanyAdmin\ClientController as CompanyAdminClientController;
 use App\Http\Controllers\CompanyAdmin\DashboardController as CompanyAdminDashboardController;
+use App\Http\Controllers\CompanyAdmin\CompanyProfileController;
+use App\Http\Controllers\CompanyAdmin\EmployeeController;
+use App\Http\Controllers\CompanyAdmin\FeedbackController as CompanyAdminFeedbackController;
+use App\Http\Controllers\CompanyAdmin\InvoiceController as CompanyAdminInvoiceController;
+use App\Http\Controllers\CompanyAdmin\NotificationController as CompanyAdminNotificationController;
+use App\Http\Controllers\CompanyAdmin\PaymentController as CompanyAdminPaymentController;
+use App\Http\Controllers\CompanyAdmin\ProfileController as CompanyAdminProfileController;
+use App\Http\Controllers\CompanyAdmin\ProjectController as CompanyAdminProjectController;
+use App\Http\Controllers\CompanyAdmin\ProjectRequestController as CompanyAdminProjectRequestController;
+use App\Http\Controllers\CompanyAdmin\ReportController as CompanyAdminReportController;
+use App\Http\Controllers\CompanyAdmin\SettingController as CompanyAdminSettingController;
+use App\Http\Controllers\CompanyAdmin\TaskController as CompanyAdminTaskController;
+use App\Http\Controllers\CompanyAdmin\WorkSessionController as CompanyAdminWorkSessionController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\SuperAdmin\CompanyController;
 use App\Http\Controllers\SuperAdmin\CompanyRequestController;
@@ -97,6 +112,65 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->name('su
 
 Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscription.active'])->prefix('company-admin')->name('company-admin.')->group(function (): void {
     Route::get('/dashboard', CompanyAdminDashboardController::class)->name('dashboard');
+
+    Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
+    Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
+    Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+
+    Route::resource('employees', EmployeeController::class);
+    Route::post('/employees/{employee}/{status}', [EmployeeController::class, 'updateStatus'])->name('employees.status');
+    Route::post('/employees/{employee}/password-reset', [EmployeeController::class, 'sendPasswordReset'])->name('employees.password-reset');
+
+    Route::resource('clients', CompanyAdminClientController::class);
+    Route::post('/clients/{client}/{status}', [CompanyAdminClientController::class, 'updateStatus'])->name('clients.status');
+
+    Route::get('/project-requests', [CompanyAdminProjectRequestController::class, 'index'])->name('project-requests.index');
+    Route::get('/project-requests/{projectRequest}', [CompanyAdminProjectRequestController::class, 'show'])->name('project-requests.show');
+    Route::put('/project-requests/{projectRequest}', [CompanyAdminProjectRequestController::class, 'update'])->name('project-requests.update');
+    Route::post('/project-requests/{projectRequest}/approve', [CompanyAdminProjectRequestController::class, 'approve'])->name('project-requests.approve');
+    Route::post('/project-requests/{projectRequest}/reject', [CompanyAdminProjectRequestController::class, 'reject'])->name('project-requests.reject');
+    Route::post('/project-requests/{projectRequest}/convert', [CompanyAdminProjectRequestController::class, 'convertToProject'])->name('project-requests.convert');
+
+    Route::resource('projects', CompanyAdminProjectController::class);
+    Route::post('/projects/{project}/assign', [CompanyAdminProjectController::class, 'assignEmployee'])->name('projects.assign');
+    Route::delete('/projects/{project}/employees/{employee}', [CompanyAdminProjectController::class, 'removeEmployee'])->name('projects.employees.destroy');
+
+    Route::resource('tasks', CompanyAdminTaskController::class);
+    Route::post('/tasks/{task}/{status}', [CompanyAdminTaskController::class, 'updateStatus'])->name('tasks.status');
+
+    Route::get('/work-sessions', [CompanyAdminWorkSessionController::class, 'index'])->name('work-sessions.index');
+    Route::get('/work-sessions/export/csv', [CompanyAdminWorkSessionController::class, 'export'])->name('work-sessions.export');
+
+    Route::resource('payments', CompanyAdminPaymentController::class);
+    Route::post('/payments/{payment}/verify', [CompanyAdminPaymentController::class, 'verify'])->name('payments.verify');
+    Route::post('/payments/{payment}/reject', [CompanyAdminPaymentController::class, 'reject'])->name('payments.reject');
+
+    Route::resource('invoices', CompanyAdminInvoiceController::class);
+    Route::get('/invoices/{invoice}/print', [CompanyAdminInvoiceController::class, 'print'])->name('invoices.print');
+    Route::post('/invoices/{invoice}/send', [CompanyAdminInvoiceController::class, 'send'])->name('invoices.send');
+    Route::post('/invoices/{invoice}/paid', [CompanyAdminInvoiceController::class, 'markPaid'])->name('invoices.paid');
+
+    Route::get('/feedback', [CompanyAdminFeedbackController::class, 'index'])->name('feedback.index');
+    Route::post('/feedback/{feedback}/{status}', [CompanyAdminFeedbackController::class, 'updateStatus'])->name('feedback.status');
+
+    Route::get('/notifications', [CompanyAdminNotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notification}/read', [CompanyAdminNotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [CompanyAdminNotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+
+    Route::get('/reports', [CompanyAdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export/{report}', [CompanyAdminReportController::class, 'export'])->name('reports.export');
+    Route::get('/reports/pdf/{report}', [CompanyAdminReportController::class, 'exportPdf'])->name('reports.pdf');
+    Route::get('/reports/{report}', [CompanyAdminReportController::class, 'show'])->name('reports.show');
+
+    Route::get('/activity-logs', [CompanyAdminActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::get('/activity-logs/{auditLog}', [CompanyAdminActivityLogController::class, 'show'])->name('activity-logs.show');
+
+    Route::get('/settings', [CompanyAdminSettingController::class, 'index'])->name('settings.index');
+    Route::put('/settings', [CompanyAdminSettingController::class, 'update'])->name('settings.update');
+
+    Route::get('/profile', [CompanyAdminProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [CompanyAdminProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [CompanyAdminProfileController::class, 'updatePassword'])->name('profile.password');
 });
 
 Route::middleware(['auth', 'role:employee', 'company.approved', 'subscription.active'])->prefix('employee')->name('employee.')->group(function (): void {

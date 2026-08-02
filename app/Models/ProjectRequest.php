@@ -15,11 +15,16 @@ class ProjectRequest extends Model
         'client_id',
         'created_by',
         'title',
+        'service_type',
         'description',
         'status',
         'expected_start_date',
         'expected_end_date',
         'estimated_budget',
+        'admin_note',
+        'rejection_reason',
+        'approved_at',
+        'approved_by',
         'converted_project_id',
     ];
 
@@ -28,6 +33,7 @@ class ProjectRequest extends Model
         return [
             'expected_start_date' => 'date',
             'expected_end_date' => 'date',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -44,5 +50,10 @@ class ProjectRequest extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

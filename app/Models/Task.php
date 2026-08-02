@@ -20,12 +20,22 @@ class Task extends Model
         'description',
         'priority',
         'status',
+        'start_date',
         'due_date',
+        'completed_at',
+        'estimated_hours',
+        'progress',
+        'task_type',
     ];
 
     protected function casts(): array
     {
-        return ['due_date' => 'date'];
+        return [
+            'start_date' => 'date',
+            'due_date' => 'date',
+            'completed_at' => 'datetime',
+            'estimated_hours' => 'decimal:2',
+        ];
     }
 
     public function company(): BelongsTo
