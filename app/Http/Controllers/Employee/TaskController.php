@@ -28,6 +28,7 @@ class TaskController extends Controller
             ->when($request->project_id, fn ($query, $projectId) => $query->where('project_id', $projectId))
             ->when($request->status, fn ($query, $status) => $query->where('status', $status))
             ->when($request->priority, fn ($query, $priority) => $query->where('priority', $priority))
+            ->when($request->due === 'today', fn ($query) => $query->whereDate('due_date', today()))
             ->when($request->due === 'overdue', fn ($query) => $query->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled']))
             ->latest()
             ->paginate(10)

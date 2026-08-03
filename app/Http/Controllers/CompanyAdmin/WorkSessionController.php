@@ -82,6 +82,7 @@ class WorkSessionController extends Controller
     {
         return WorkSession::with(['user', 'project', 'task'])
             ->where('company_id', $this->companyId())
+            ->when($request->status === 'running', fn ($query) => $query->whereNull('ended_at'))
             ->when($request->employee_id, fn ($query, $employeeId) => $query->where('user_id', $employeeId))
             ->when($request->project_id, fn ($query, $projectId) => $query->where('project_id', $projectId))
             ->when($request->date_from, fn ($query, $date) => $query->whereDate('started_at', '>=', $date))

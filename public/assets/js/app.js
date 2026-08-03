@@ -31,6 +31,14 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+document.querySelectorAll('[data-sidebar] a').forEach((link) => {
+    link.addEventListener('click', () => {
+        if (window.matchMedia('(max-width: 991.98px)').matches) {
+            closeSidebar();
+        }
+    });
+});
+
 document.querySelectorAll('[data-password-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
         const input = button.parentElement.querySelector('input');

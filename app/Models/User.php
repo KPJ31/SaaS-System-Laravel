@@ -83,6 +83,17 @@ class User extends Authenticatable
             || $this->hasDirectPermission($permission);
     }
 
+    public function canAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function syncDirectPermissions(array $permissionNames): void
     {
         $ids = Permission::whereIn('name', $permissionNames)->pluck('id');
