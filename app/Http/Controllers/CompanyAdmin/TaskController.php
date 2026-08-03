@@ -21,6 +21,8 @@ class TaskController extends Controller
 
     public function index(Request $request): View
     {
+        $this->authorizeTaskFilters($request);
+
         $tasks = Task::with(['project', 'assignee'])
             ->where('company_id', $this->companyId())
             ->when($request->search, fn ($query, $search) => $query->where('title', 'like', "%{$search}%"))
@@ -98,6 +100,11 @@ class TaskController extends Controller
     {
         $this->abortUnlessCompanyRecord($task);
         abort_unless(in_array($status, ['todo', 'assigned', 'in_progress', 'paused', 'blocked', 'submitted', 'under_review', 'completed', 'cancelled'], true), 404);
+
+        if (! $this->canTransition($task->status, $status)) {
+            return back()->with('error', 'This task cannot be changed from '.$task->status.' to '.$status.'.');
+        }
+
         $task->update(['status' => $status, 'completed_at' => $status === 'completed' ? now() : null]);
         $this->syncProjectProgress($task->project);
 
@@ -111,6 +118,10 @@ class TaskController extends Controller
             'status' => ['required', 'in:under_review,in_progress,completed,cancelled'],
             'blocked_reason' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        if (! $this->canTransition($task->status, $data['status'])) {
+            return back()->with('error', 'This task cannot be changed from '.$task->status.' to '.$data['status'].'.');
+        }
 
         $task->update([
             'status' => $data['status'],
@@ -196,6 +207,34 @@ class TaskController extends Controller
         if (! empty($data['assignee_id'])) {
             abort_unless(User::where('company_id', $this->companyId())->where('role', 'employee')->whereKey($data['assignee_id'])->exists(), 403);
         }
+    }
+
+    private function authorizeTaskFilters(Request $request): void
+    {
+        if ($request->filled('project_id')) {
+            abort_unless(Project::where('company_id', $this->companyId())->whereKey($request->integer('project_id'))->exists(), 403);
+        }
+
+        if ($request->filled('assignee_id')) {
+            abort_unless(User::where('company_id', $this->companyId())->where('role', 'employee')->whereKey($request->integer('assignee_id'))->exists(), 403);
+        }
+    }
+
+    private function canTransition(string $currentStatus, string $newStatus): bool
+    {
+        if ($currentStatus === $newStatus) {
+            return false;
+        }
+
+        return match ($currentStatus) {
+            'todo' => in_array($newStatus, ['assigned', 'in_progress', 'cancelled'], true),
+            'assigned' => in_array($newStatus, ['in_progress', 'cancelled'], true),
+            'in_progress' => in_array($newStatus, ['paused', 'blocked', 'submitted', 'cancelled'], true),
+            'paused', 'blocked' => in_array($newStatus, ['in_progress', 'cancelled'], true),
+            'submitted' => $newStatus === 'under_review',
+            'under_review' => in_array($newStatus, ['completed', 'in_progress', 'cancelled'], true),
+            default => false,
+        };
     }
 
     private function syncProjectProgress(Project $project): void

@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Company;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class CompanyController extends Controller
@@ -74,26 +75,59 @@ class CompanyController extends Controller
         return redirect()->route('super-admin.companies.show', $company)->with('success', 'Company information updated.');
     }
 
-    public function updateStatus(Company $company, string $status): RedirectResponse
+    public function updateStatus(Request $request, Company $company, string $status): RedirectResponse
     {
-        abort_unless(in_array($status, ['pending', 'active', 'suspended', 'rejected'], true), 404);
+        abort_unless(in_array($status, ['active', 'suspended', 'rejected'], true), 404);
 
-        $old = ['status' => $company->status];
-        $company->update(['status' => $status]);
-        AuditLog::create([
-            'company_id' => $company->id,
-            'user_id' => auth()->id(),
-            'action' => 'company_'.$status,
-            'module' => 'Companies',
-            'auditable_type' => Company::class,
-            'auditable_id' => $company->id,
-            'description' => ucfirst($status).' company '.$company->name,
-            'old_values' => $old,
-            'new_values' => ['status' => $status],
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
+        if (! $this->canTransition($company->status, $status)) {
+            return back()->with('error', 'This company cannot be changed from '.$company->status.' to '.$status.'.');
+        }
+
+        $data = $request->validate([
+            'reason' => [$status === 'suspended' || $status === 'rejected' ? 'required' : 'nullable', 'string', 'max:1000'],
         ]);
 
+        DB::transaction(function () use ($request, $company, $status, $data): void {
+            $old = ['status' => $company->status];
+            $company->update(['status' => $status]);
+
+            if ($status === 'suspended') {
+                $company->users()->whereIn('status', ['active', 'pending'])->update(['status' => 'suspended']);
+            }
+
+            if ($status === 'active') {
+                $company->users()->where('role', 'company_admin')->where('status', 'suspended')->update(['status' => 'active']);
+            }
+
+            AuditLog::create([
+                'company_id' => $company->id,
+                'user_id' => auth()->id(),
+                'action' => 'company_'.$status,
+                'module' => 'Companies',
+                'auditable_type' => Company::class,
+                'auditable_id' => $company->id,
+                'description' => ucfirst($status).' company '.$company->name.($data['reason'] ?? '' ? ': '.$data['reason'] : ''),
+                'old_values' => $old,
+                'new_values' => ['status' => $status, 'reason' => $data['reason'] ?? null],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        });
+
         return back()->with('success', 'Company status updated.');
+    }
+
+    private function canTransition(string $currentStatus, string $newStatus): bool
+    {
+        if ($currentStatus === $newStatus) {
+            return false;
+        }
+
+        return match ($currentStatus) {
+            'pending' => in_array($newStatus, ['active', 'rejected'], true),
+            'active' => $newStatus === 'suspended',
+            'suspended' => $newStatus === 'active',
+            default => false,
+        };
     }
 }

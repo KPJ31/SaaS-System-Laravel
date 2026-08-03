@@ -48,20 +48,22 @@ class LeaveRequestController extends Controller
         return view('employee.leave-requests.form', ['leave' => $leaveRequest]);
     }
 
-    public function update(Request $request, LeaveRequest $leaveRequest): RedirectResponse
+    public function update(Request $request, LeaveRequest $leaveRequest, AuditLogger $logger): RedirectResponse
     {
         $this->abortUnlessOwnPendingLeave($leaveRequest);
         $data = $this->validated($request);
         $this->preventOverlap($data, $leaveRequest->id);
         $leaveRequest->update($data + ['total_days' => now()->parse($data['start_date'])->diffInDays(now()->parse($data['end_date'])) + 1]);
+        $logger->record('leave_updated', 'Pending leave request updated.', auth()->user(), $leaveRequest, $this->companyId(), request: $request);
 
         return redirect()->route('employee.leave-requests.index')->with('success', 'Leave request updated.');
     }
 
-    public function cancel(LeaveRequest $leaveRequest): RedirectResponse
+    public function cancel(LeaveRequest $leaveRequest, AuditLogger $logger): RedirectResponse
     {
         $this->abortUnlessOwnPendingLeave($leaveRequest);
         $leaveRequest->update(['status' => 'cancelled']);
+        $logger->record('leave_cancelled', 'Pending leave request cancelled.', auth()->user(), $leaveRequest, $this->companyId(), request: request());
 
         return back()->with('success', 'Leave request cancelled.');
     }

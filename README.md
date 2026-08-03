@@ -175,6 +175,7 @@ Company Admin:
 Employee:
 
 - Employee dashboard with metrics, charts, active timer, notifications, and activity
+- Attendance check-in/check-out with daily status, late, half-day and early-departure tracking
 - My Projects list and details with assigned task and document visibility
 - My Tasks list, details, progress updates, status workflow, comments, and file uploads
 - Start/stop work timer with one active timer per employee
@@ -212,6 +213,7 @@ Core application tables:
 - `subscriptions`
 - `system_settings`
 - `feedback`
+- `attendances`
 
 Laravel framework tables:
 
@@ -296,6 +298,48 @@ Company Admin operations:
 2. Records are scoped to the current company.
 3. Subscription limits protect employee, client, and project capacity.
 4. Reports and activity logs summarize company work.
+
+Work timer workflow:
+
+1. Employee opens an assigned task.
+2. Employee starts work if the task belongs to their company, is assigned to them, is not completed or cancelled, and no other timer is running.
+3. The system creates one running `work_sessions` record and moves eligible tasks to `in_progress`.
+4. Employee stops the active timer from the task page or dashboard.
+5. The server stores `ended_at`, calculates `duration_minutes`, saves the note, and marks the session as `stopped`.
+
+Attendance workflow:
+
+1. Company Admin configures working hours under Company Settings.
+2. Employee checks in once per configured working day.
+3. The system calculates late status using the configured start time and grace period.
+4. Employee checks out once per day.
+5. The system calculates gross minutes, lunch deduction, net work minutes, full-day or half-day status, and early departure.
+6. Company Admin reviews attendance from Attendance Overview and may correct records with a required reason.
+
+Default attendance rules:
+
+- Work start time: `08:30`
+- Work end time: `17:00`
+- Lunch break: `30` minutes
+- Late grace period: `10` minutes
+- Early departure grace period: `10` minutes
+- Full-day target: `480` minutes
+- Half-day minimum: `240` minutes
+- Working days: Monday to Friday
+- Lunch is deducted when gross attendance is at least five hours.
+
+Automatic absence:
+
+```bash
+php artisan attendance:mark-absent
+```
+
+The command marks active Employees as `absent` for working days without attendance, or `on_leave` when an approved leave request exists. Add it to the scheduler after the working day ends in production.
+
+Attendance permissions:
+
+- Base Employee: `attendance.view-own`, `attendance.check-in`, `attendance.check-out`
+- Optional Employee permissions: `attendance.view-all`, `attendance.edit`, `attendance.export`, `attendance.reports`
 
 ## Security
 

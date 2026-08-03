@@ -7,7 +7,7 @@
     'eyebrow' => 'Time Tracking',
     'title' => 'Work Sessions',
     'description' => 'Monitor employee timers, daily hours and monthly work totals.',
-    'actions' => new \Illuminate\Support\HtmlString('<a class="btn btn-outline-primary" href="'.route('company-admin.work-sessions.export', request()->query()).'"><i class="fa-solid fa-file-csv"></i>Export CSV</a>')
+    'actions' => new \Illuminate\Support\HtmlString('<a class="btn btn-outline-primary" href="'.route('company-admin.work-sessions.export', request()->query()).'"><i class="fa-solid fa-file-csv"></i>Export CSV</a><a class="btn btn-primary" href="'.route('company-admin.work-sessions.pdf', request()->query()).'"><i class="fa-solid fa-file-pdf"></i>Export PDF</a>')
 ])
 <div class="stat-grid">
     @include('partials.stat-card', ['label' => 'Running Timers', 'value' => $runningTimers, 'icon' => 'fa-play'])

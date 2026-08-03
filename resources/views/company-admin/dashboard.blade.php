@@ -69,21 +69,29 @@
 <div class="content-grid mb-3">
     <section class="content-card">
         <div class="content-card-header"><div><h2>Project Status</h2><p>Distribution by current project state.</p></div></div>
-        <canvas data-chart="companyProjectStatus" height="140"></canvas>
+        <div class="dashboard-pie-wrapper chart-medium">
+            <canvas id="companyAdminProjectStatusChart" data-chart="companyProjectStatus" role="img" aria-label="Company project status distribution chart"></canvas>
+        </div>
     </section>
     <section class="content-card">
         <div class="content-card-header"><div><h2>Task Status</h2><p>Delivery load across task workflow stages.</p></div></div>
-        <canvas data-chart="companyTaskStatus" height="140"></canvas>
+        <div class="dashboard-pie-wrapper chart-medium">
+            <canvas id="companyAdminTaskStatusChart" data-chart="companyTaskStatus" role="img" aria-label="Company task status distribution chart"></canvas>
+        </div>
     </section>
 </div>
 <div class="content-grid mb-3">
     <section class="content-card">
         <div class="content-card-header"><div><h2>Employee Work Hours</h2><p>This month by employee.</p></div></div>
-        <canvas data-chart="companyEmployeeHours" height="140"></canvas>
+        <div class="dashboard-chart-wrapper chart-horizontal">
+            <canvas id="companyAdminEmployeeHoursChart" data-chart="companyEmployeeHours" role="img" aria-label="Employee work hours comparison chart"></canvas>
+        </div>
     </section>
     <section class="content-card">
         <div class="content-card-header"><div><h2>Payment Status</h2><p>Client project payment distribution.</p></div></div>
-        <canvas data-chart="companyPaymentStatus" height="140"></canvas>
+        <div class="dashboard-pie-wrapper chart-medium">
+            <canvas id="companyAdminPaymentStatusChart" data-chart="companyPaymentStatus" role="img" aria-label="Company payment status distribution chart"></canvas>
+        </div>
     </section>
 </div>
 

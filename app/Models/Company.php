@@ -56,6 +56,11 @@ class Company extends Model
         return $this->hasMany(WorkSession::class);
     }
 
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);

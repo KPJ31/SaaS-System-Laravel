@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\AuditLog;
 use App\Models\Client;
+use App\Models\CompanySetting;
 use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use App\Models\WorkSession;
 use Carbon\CarbonPeriod;
 use Illuminate\View\View;
@@ -31,6 +34,14 @@ class DashboardController extends Controller
         $totalTasks = (clone $tasksQuery)->count();
         $completedTasks = (clone $tasksQuery)->where('status', 'completed')->count();
         $score = $totalTasks > 0 ? (int) round(($completedTasks / $totalTasks) * 40 + min(30, ((clone $sessionsQuery)->whereNotNull('ended_at')->count() / max(1, now()->day)) * 30) + 20) : null;
+        $setting = CompanySetting::firstOrCreate(
+            ['company_id' => $user->company_id],
+            ['timezone' => $user->company?->timezone ?? 'UTC', 'currency' => 'USD', 'settings' => []]
+        );
+        $attendanceSettings = $setting->attendanceSettings() + ['timezone' => $setting->timezone ?: 'UTC'];
+        $today = now($attendanceSettings['timezone'])->toDateString();
+        $attendance = Attendance::where('company_id', $user->company_id)->where('user_id', $user->id)->whereDate('attendance_date', $today)->first();
+        $todayTaskMinutes = (clone $sessionsQuery)->whereDate('started_at', $today)->sum('duration_minutes');
 
         return view('employee.dashboard', [
             'stats' => [
@@ -52,8 +63,8 @@ class DashboardController extends Controller
                 'companyTotalProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->count() : null,
                 'companyActiveProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->whereIn('status', ['active', 'in_progress', 'testing'])->count() : null,
                 'companyCompletedProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->where('status', 'completed')->count() : null,
-                'companyTotalEmployees' => $user->can('employees.view') ? \App\Models\User::where('company_id', $user->company_id)->where('role', 'employee')->count() : null,
-                'companyActiveEmployees' => $user->can('employees.view') ? \App\Models\User::where('company_id', $user->company_id)->where('role', 'employee')->where('status', 'active')->count() : null,
+                'companyTotalEmployees' => $user->can('employees.view') ? User::where('company_id', $user->company_id)->where('role', 'employee')->count() : null,
+                'companyActiveEmployees' => $user->can('employees.view') ? User::where('company_id', $user->company_id)->where('role', 'employee')->where('status', 'active')->count() : null,
                 'companyTotalTasks' => $user->can('tasks.view') ? Task::where('company_id', $user->company_id)->count() : null,
                 'companyPendingTasks' => $user->can('tasks.view') ? Task::where('company_id', $user->company_id)->whereIn('status', ['todo', 'assigned'])->count() : null,
                 'companyOverdueTasks' => $user->can('tasks.view') ? Task::where('company_id', $user->company_id)->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled'])->count() : null,
@@ -65,7 +76,13 @@ class DashboardController extends Controller
             'todayTasks' => (clone $tasksQuery)->with('project')->whereDate('due_date', today())->latest()->take(6)->get(),
             'overdueTasks' => (clone $tasksQuery)->with('project')->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled'])->latest()->take(6)->get(),
             'sessions' => (clone $sessionsQuery)->with(['project', 'task'])->latest()->take(5)->get(),
-            'activeTimer' => (clone $sessionsQuery)->with(['project', 'task'])->whereNull('ended_at')->latest()->first(),
+            'activeTimer' => (clone $sessionsQuery)->with(['project', 'task'])->where('status', 'running')->whereNull('ended_at')->latest()->first(),
+            'attendance' => $attendance,
+            'attendanceSettings' => $attendanceSettings,
+            'attendanceSummary' => [
+                'todayTaskMinutes' => $todayTaskMinutes,
+                'unallocatedMinutes' => $attendance ? max(0, (int) $attendance->net_work_minutes - (int) $todayTaskMinutes) : 0,
+            ],
             'notifications' => $user->notifications()->latest()->take(5)->get(),
             'activities' => AuditLog::where('company_id', $user->company_id)->where('user_id', $user->id)->latest()->take(6)->get(),
             'chartData' => [

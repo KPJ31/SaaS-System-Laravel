@@ -35,6 +35,7 @@ trait HandlesEmployeeAccess
         return auth()->user()->workSessions()
             ->with(['project', 'task'])
             ->where('company_id', $this->companyId())
+            ->where('status', 'running')
             ->whereNull('ended_at')
             ->latest()
             ->first();

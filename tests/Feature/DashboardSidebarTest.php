@@ -64,12 +64,15 @@ beforeEach(function (): void {
 });
 
 test('super admin sees only super admin sidebar', function () {
-    $superAdmin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+    $superAdmin = User::factory()->create(['name' => 'John Admin', 'role' => 'super_admin', 'status' => 'active']);
 
     $this->actingAs($superAdmin)
         ->get(route('super-admin.dashboard'))
         ->assertOk()
-        ->assertSee('Super Admin Dashboard')
+        ->assertSee('John Admin')
+        ->assertSee('Super Admin')
+        ->assertSee('sidebar-account-card', false)
+        ->assertDontSee('sidebar-brand', false)
         ->assertSee('Platform Management')
         ->assertSee('System Settings')
         ->assertDontSee('Employee Permissions')
@@ -83,7 +86,10 @@ test('company admin sees only company admin sidebar', function () {
     $this->actingAs($admin)
         ->get(route('company-admin.dashboard'))
         ->assertOk()
-        ->assertSee('Company Admin Dashboard')
+        ->assertSee($company->name)
+        ->assertSee('Company Admin')
+        ->assertSee('sidebar-account-card', false)
+        ->assertDontSee('sidebar-brand', false)
         ->assertSee('Organization')
         ->assertSee('Employee Permissions')
         ->assertDontSee('Platform Management')
@@ -96,7 +102,12 @@ test('employee sees base employee sidebar', function () {
     $this->actingAs($employee)
         ->get(route('employee.dashboard'))
         ->assertOk()
-        ->assertSee('Employee Dashboard')
+        ->assertSee($employee->company->name)
+        ->assertSee('Employee')
+        ->assertSee($employee->name)
+        ->assertSee('sidebar-account-card', false)
+        ->assertDontSee('Company Admin')
+        ->assertDontSee('sidebar-brand', false)
         ->assertSee('My Work')
         ->assertSee('My Projects')
         ->assertSee('My Tasks')
@@ -204,4 +215,56 @@ test('mobile sidebar markup includes accessible controls', function () {
         ->assertSee('aria-controls="app-sidebar"', false)
         ->assertSee('data-sidebar-overlay', false)
         ->assertSee('aria-label="Close sidebar"', false);
+});
+
+test('sidebar removes public website and logout actions while topbar keeps logout', function () {
+    $employee = sidebarTestUser();
+
+    $this->actingAs($employee)
+        ->get(route('employee.dashboard'))
+        ->assertOk()
+        ->assertDontSee('Visit Website')
+        ->assertDontSee('sidebar-logout', false)
+        ->assertDontSee('sidebar-footer', false)
+        ->assertSee('action="'.route('logout').'"', false)
+        ->assertSee('name="_token"', false);
+});
+
+test('topbar profile dropdown includes profile password and logout actions', function () {
+    $employee = sidebarTestUser();
+
+    $this->actingAs($employee)
+        ->get(route('employee.dashboard'))
+        ->assertOk()
+        ->assertSee('My Profile')
+        ->assertSee('Change Password')
+        ->assertSee('Logout')
+        ->assertSee('method="POST"', false)
+        ->assertSee('name="_token"', false);
+});
+
+test('company admin sidebar account card handles long company names and missing logo', function () {
+    $longName = 'NovaStack Software International Product Engineering Workspace';
+    $company = sidebarTestCompany(['name' => $longName, 'logo_path' => null]);
+    $admin = sidebarTestUser($company, ['role' => 'company_admin']);
+
+    $this->actingAs($admin)
+        ->get(route('company-admin.dashboard'))
+        ->assertOk()
+        ->assertSee('sidebar-account-name text-truncate', false)
+        ->assertSee('title="'.$longName.'"', false)
+        ->assertSee('>N</span>', false);
+});
+
+test('employee sidebar only shows own company context', function () {
+    $company = sidebarTestCompany(['name' => 'Company A Workspace']);
+    $otherCompany = sidebarTestCompany(['name' => 'Company B Workspace']);
+    $employee = sidebarTestUser($company);
+    sidebarTestUser($otherCompany);
+
+    $this->actingAs($employee)
+        ->get(route('employee.dashboard'))
+        ->assertOk()
+        ->assertSee('Company A Workspace')
+        ->assertDontSee('Company B Workspace');
 });

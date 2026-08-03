@@ -3,13 +3,11 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\CompanyRegistrationController;
-use App\Http\Controllers\DashboardRedirectController;
-use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\CompanyAdmin\ActivityLogController as CompanyAdminActivityLogController;
+use App\Http\Controllers\CompanyAdmin\AttendanceController as CompanyAdminAttendanceController;
 use App\Http\Controllers\CompanyAdmin\ClientController as CompanyAdminClientController;
-use App\Http\Controllers\CompanyAdmin\DashboardController as CompanyAdminDashboardController;
 use App\Http\Controllers\CompanyAdmin\CompanyProfileController;
+use App\Http\Controllers\CompanyAdmin\DashboardController as CompanyAdminDashboardController;
 use App\Http\Controllers\CompanyAdmin\DocumentController as CompanyAdminDocumentController;
 use App\Http\Controllers\CompanyAdmin\EmployeeController;
 use App\Http\Controllers\CompanyAdmin\EmployeePermissionController;
@@ -25,8 +23,11 @@ use App\Http\Controllers\CompanyAdmin\ReportController as CompanyAdminReportCont
 use App\Http\Controllers\CompanyAdmin\SettingController as CompanyAdminSettingController;
 use App\Http\Controllers\CompanyAdmin\TaskController as CompanyAdminTaskController;
 use App\Http\Controllers\CompanyAdmin\WorkSessionController as CompanyAdminWorkSessionController;
-use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
+use App\Http\Controllers\CompanyRegistrationController;
+use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\Employee\ActivityController as EmployeeActivityController;
+use App\Http\Controllers\Employee\AttendanceController as EmployeeAttendanceController;
+use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\DocumentController as EmployeeDocumentController;
 use App\Http\Controllers\Employee\LeaveRequestController as EmployeeLeaveRequestController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
@@ -36,10 +37,11 @@ use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
 use App\Http\Controllers\Employee\WorkSessionController as EmployeeWorkSessionController;
+use App\Http\Controllers\PublicPageController;
+use App\Http\Controllers\SuperAdmin\AuditLogController;
 use App\Http\Controllers\SuperAdmin\CompanyController;
 use App\Http\Controllers\SuperAdmin\CompanyRequestController;
 use App\Http\Controllers\SuperAdmin\CompanySubscriptionController;
-use App\Http\Controllers\SuperAdmin\AuditLogController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\NotificationController;
 use App\Http\Controllers\SuperAdmin\PaymentController;
@@ -51,6 +53,11 @@ use App\Http\Controllers\SuperAdmin\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicPageController::class, 'landing'])->name('home');
+Route::get('/about', [PublicPageController::class, 'about'])->name('about');
+Route::get('/contact', [PublicPageController::class, 'contact'])->name('contact');
+Route::post('/contact', [PublicPageController::class, 'submitContact'])->name('contact.submit');
+Route::get('/privacy-policy', [PublicPageController::class, 'privacy'])->name('privacy');
+Route::get('/terms-and-conditions', [PublicPageController::class, 'terms'])->name('terms');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
@@ -162,7 +169,13 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
 
     Route::get('/work-sessions', [CompanyAdminWorkSessionController::class, 'index'])->name('work-sessions.index');
     Route::get('/work-sessions/export/csv', [CompanyAdminWorkSessionController::class, 'export'])->name('work-sessions.export');
+    Route::get('/work-sessions/export/pdf', [CompanyAdminWorkSessionController::class, 'exportPdf'])->name('work-sessions.pdf');
     Route::patch('/work-sessions/{workSession}', [CompanyAdminWorkSessionController::class, 'update'])->name('work-sessions.update');
+
+    Route::get('/attendance', [CompanyAdminAttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('/attendance/export/csv', [CompanyAdminAttendanceController::class, 'export'])->name('attendance.export');
+    Route::get('/attendance/export/pdf', [CompanyAdminAttendanceController::class, 'exportPdf'])->name('attendance.pdf');
+    Route::patch('/attendance/{attendance}', [CompanyAdminAttendanceController::class, 'update'])->name('attendance.update');
 
     Route::get('/leave-requests', [CompanyAdminLeaveRequestController::class, 'index'])->name('leave-requests.index');
     Route::get('/leave-requests/{leaveRequest}', [CompanyAdminLeaveRequestController::class, 'show'])->name('leave-requests.show');
@@ -226,6 +239,12 @@ Route::middleware(['auth', 'role:employee', 'employee.active', 'company.approved
     Route::get('/files/{file}/download', [EmployeeTaskController::class, 'download'])->name('files.download');
     Route::get('/work-sessions', [EmployeeWorkSessionController::class, 'index'])->name('work-sessions.index');
     Route::get('/work-sessions/export/csv', [EmployeeWorkSessionController::class, 'export'])->name('work-sessions.export');
+    Route::get('/work-sessions/export/pdf', [EmployeeWorkSessionController::class, 'exportPdf'])->name('work-sessions.pdf');
+    Route::get('/attendance', [EmployeeAttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('/attendance/export/csv', [EmployeeAttendanceController::class, 'export'])->name('attendance.export');
+    Route::get('/attendance/export/pdf', [EmployeeAttendanceController::class, 'exportPdf'])->name('attendance.pdf');
+    Route::post('/attendance/check-in', [EmployeeAttendanceController::class, 'checkIn'])->name('attendance.check-in');
+    Route::post('/attendance/check-out', [EmployeeAttendanceController::class, 'checkOut'])->name('attendance.check-out');
     Route::get('/documents', [EmployeeDocumentController::class, 'index'])->name('documents.index');
     Route::resource('leave-requests', EmployeeLeaveRequestController::class)->except(['show', 'destroy']);
     Route::post('/leave-requests/{leaveRequest}/cancel', [EmployeeLeaveRequestController::class, 'cancel'])->name('leave-requests.cancel');

@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
-use App\Models\Permission;
 use App\Support\PermissionCatalog;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
@@ -115,6 +114,11 @@ class User extends Authenticatable
     public function workSessions(): HasMany
     {
         return $this->hasMany(WorkSession::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
     }
 
     public function leaveRequests(): HasMany

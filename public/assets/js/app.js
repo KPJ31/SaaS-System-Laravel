@@ -288,9 +288,140 @@ if (window.bootstrap) {
     });
 }
 
+const hasChartValues = (values) => Array.isArray(values) && values.some((value) => Number(value) > 0);
+const chartFont = { family: 'Poppins', size: 11 };
+const chartGrid = { color: 'rgba(148, 163, 184, 0.15)', drawBorder: false };
+
+function setChartHeight(canvas, height) {
+    const wrapper = canvas?.closest('.dashboard-chart-wrapper');
+    if (wrapper) {
+        wrapper.style.height = `${height}px`;
+    }
+}
+
+function compactDoughnutData(labels, values, colors) {
+    if (hasChartValues(values)) {
+        return { labels, datasets: [{ data: values, backgroundColor: colors }] };
+    }
+
+    return {
+        labels: ['No data'],
+        datasets: [{ data: [1], backgroundColor: ['#E2E8F0'], hoverBackgroundColor: ['#CBD5E1'] }],
+    };
+}
+
+function compactDoughnutOptions() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600 },
+        cutout: '68%',
+        layout: { padding: 4 },
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    boxWidth: 10,
+                    boxHeight: 10,
+                    padding: 12,
+                    font: chartFont,
+                    usePointStyle: true,
+                },
+            },
+            tooltip: {
+                bodyFont: {
+                    family: 'Poppins',
+                    size: 12,
+                },
+                titleFont: {
+                    family: 'Poppins',
+                    size: 12,
+                    weight: '600',
+                },
+                padding: 10,
+            },
+        },
+    };
+}
+
+function compactLineOptions() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600 },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                bodyFont: { family: 'Poppins', size: 12 },
+                titleFont: { family: 'Poppins', size: 12, weight: '600' },
+                padding: 10,
+            },
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { autoSkip: true, maxTicksLimit: 8, maxRotation: 0, minRotation: 0, font: chartFont },
+            },
+            y: {
+                beginAtZero: true,
+                grid: chartGrid,
+                ticks: { precision: 0, font: chartFont },
+            },
+        },
+    };
+}
+
+function compactBarOptions() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600 },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                bodyFont: { family: 'Poppins', size: 12 },
+                titleFont: { family: 'Poppins', size: 12, weight: '600' },
+                padding: 10,
+            },
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { autoSkip: true, maxTicksLimit: 8, maxRotation: 0, minRotation: 0, font: chartFont },
+            },
+            y: {
+                beginAtZero: true,
+                grid: chartGrid,
+                ticks: { precision: 0, font: chartFont },
+            },
+        },
+    };
+}
+
+function horizontalBarOptions() {
+    return {
+        ...compactBarOptions(),
+        indexAxis: 'y',
+        scales: {
+            x: {
+                beginAtZero: true,
+                grid: chartGrid,
+                ticks: { precision: 0, font: chartFont },
+            },
+            y: {
+                grid: { display: false },
+                ticks: { autoSkip: false, font: chartFont },
+            },
+        },
+    };
+}
+
 if (window.Chart && window.elevanixDashboardCharts) {
     const data = window.elevanixDashboardCharts;
     const colors = ['#6D28D9', '#8B5CF6', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#2563EB'];
+    const pieOptions = compactDoughnutOptions();
+    const lineOptions = compactLineOptions();
+    const barOptions = compactBarOptions();
 
     const makeChart = (selector, config) => {
         const canvas = document.querySelector(selector);
@@ -301,14 +432,14 @@ if (window.Chart && window.elevanixDashboardCharts) {
 
     makeChart('[data-chart="companyGrowth"]', {
         type: 'line',
-        data: { labels: data.labels, datasets: [{ label: 'Companies', data: data.companyGrowth, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.12)', tension: 0.35, fill: true }] },
-        options: { responsive: true, plugins: { legend: { display: false } } },
+        data: { labels: data.labels, datasets: [{ label: 'Companies', data: data.companyGrowth, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
+        options: lineOptions,
     });
 
     makeChart('[data-chart="revenueGrowth"]', {
         type: 'bar',
-        data: { labels: data.labels, datasets: [{ label: 'Revenue', data: data.revenueGrowth, backgroundColor: '#8B5CF6' }] },
-        options: { responsive: true, plugins: { legend: { display: false } } },
+        data: { labels: data.labels, datasets: [{ label: 'Revenue', data: data.revenueGrowth, backgroundColor: '#8B5CF6', borderRadius: 6, borderSkipped: false, maxBarThickness: 32, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+        options: barOptions,
     });
 
     [
@@ -317,33 +448,35 @@ if (window.Chart && window.elevanixDashboardCharts) {
     ].forEach(([name, labels, values]) => {
         makeChart(`[data-chart="${name}"]`, {
             type: 'doughnut',
-            data: { labels, datasets: [{ data: values, backgroundColor: colors }] },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+            data: compactDoughnutData(labels, values, colors),
+            options: pieOptions,
         });
     });
 
     makeChart('[data-chart="platformProjectStatus"]', {
         type: 'doughnut',
-        data: { labels: data.projectStatusLabels, datasets: [{ data: data.projectStatusValues, backgroundColor: colors }] },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+        data: compactDoughnutData(data.projectStatusLabels, data.projectStatusValues, colors),
+        options: pieOptions,
     });
 
     makeChart('[data-chart="platformTaskStatus"]', {
         type: 'doughnut',
-        data: { labels: data.taskStatusLabels, datasets: [{ data: data.taskStatusValues, backgroundColor: colors }] },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+        data: compactDoughnutData(data.taskStatusLabels, data.taskStatusValues, colors),
+        options: pieOptions,
     });
 
     makeChart('[data-chart="platformUserGrowth"]', {
         type: 'line',
-        data: { labels: data.labels, datasets: [{ label: 'Users', data: data.userGrowth, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.12)', tension: 0.35, fill: true }] },
-        options: { responsive: true, plugins: { legend: { display: false } } },
+        data: { labels: data.labels, datasets: [{ label: 'Users', data: data.userGrowth, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
+        options: lineOptions,
     });
 }
 
 if (window.Chart && window.elevanixCompanyCharts) {
     const data = window.elevanixCompanyCharts;
     const colors = ['#6D28D9', '#8B5CF6', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6'];
+    const pieOptions = compactDoughnutOptions();
+    const employeeHoursOptions = horizontalBarOptions();
 
     const chart = (selector, labels, values) => {
         const canvas = document.querySelector(selector);
@@ -353,8 +486,8 @@ if (window.Chart && window.elevanixCompanyCharts) {
 
         new Chart(canvas, {
             type: 'doughnut',
-            data: { labels, datasets: [{ data: values, backgroundColor: colors }] },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+            data: compactDoughnutData(labels, values, colors),
+            options: pieOptions,
         });
     };
 
@@ -363,10 +496,12 @@ if (window.Chart && window.elevanixCompanyCharts) {
 
     const employeeHours = document.querySelector('[data-chart="companyEmployeeHours"]');
     if (employeeHours) {
+        const employeeCount = data.employeeHoursLabels?.length || 0;
+        setChartHeight(employeeHours, Math.max(260, Math.min(employeeCount * 42, 420)));
         new Chart(employeeHours, {
             type: 'bar',
-            data: { labels: data.employeeHoursLabels, datasets: [{ label: 'Hours', data: data.employeeHoursValues, backgroundColor: '#6D28D9' }] },
-            options: { responsive: true, plugins: { legend: { display: false } } },
+            data: { labels: data.employeeHoursLabels, datasets: [{ label: 'Hours', data: data.employeeHoursValues, backgroundColor: '#6D28D9', borderRadius: 6, borderSkipped: false, maxBarThickness: 28, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+            options: employeeHoursOptions,
         });
     }
 
@@ -394,13 +529,15 @@ document.querySelectorAll('[data-active-timer]').forEach((timer) => {
 if (window.Chart && window.elevanixEmployeeCharts) {
     const data = window.elevanixEmployeeCharts;
     const colors = ['#6D28D9', '#8B5CF6', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6'];
+    const pieOptions = compactDoughnutOptions();
+    const barOptions = compactBarOptions();
 
     const weekly = document.querySelector('[data-chart="employeeWeeklyHours"]');
     if (weekly) {
         new Chart(weekly, {
             type: 'bar',
-            data: { labels: data.weeklyLabels, datasets: [{ label: 'Hours', data: data.weeklyHours, backgroundColor: '#6D28D9' }] },
-            options: { responsive: true, plugins: { legend: { display: false } } },
+            data: { labels: data.weeklyLabels, datasets: [{ label: 'Hours', data: data.weeklyHours, backgroundColor: '#6D28D9', borderRadius: 6, borderSkipped: false, maxBarThickness: 28, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+            options: barOptions,
         });
     }
 
@@ -408,8 +545,8 @@ if (window.Chart && window.elevanixEmployeeCharts) {
     if (status) {
         new Chart(status, {
             type: 'doughnut',
-            data: { labels: data.taskStatusLabels, datasets: [{ data: data.taskStatusValues, backgroundColor: colors }] },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+            data: compactDoughnutData(data.taskStatusLabels, data.taskStatusValues, colors),
+            options: pieOptions,
         });
     }
 }
@@ -419,8 +556,8 @@ if (window.Chart && window.elevanixEmployeePerformance) {
     if (canvas) {
         new Chart(canvas, {
             type: 'line',
-            data: { labels: window.elevanixEmployeePerformance.labels, datasets: [{ label: 'Completed tasks', data: window.elevanixEmployeePerformance.values, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.12)', tension: 0.35, fill: true }] },
-            options: { responsive: true, plugins: { legend: { display: false } } },
+            data: { labels: window.elevanixEmployeePerformance.labels, datasets: [{ label: 'Completed tasks', data: window.elevanixEmployeePerformance.values, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
+            options: compactLineOptions(),
         });
     }
 }

@@ -1,0 +1,173 @@
+Elevanix Company Admin Test Report
+Test date and time: 2026-08-03 11:03:54 +05:30
+
+Environment summary
+- Project: Elevanix - Smart Software Company Management System
+- Stack: Laravel, Blade, Bootstrap 5, Vite, Chart.js, SweetAlert2, Font Awesome, Laravel Mail, custom permission system
+- Database action: php artisan migrate was run safely and reported "Nothing to migrate."
+- No migrate:fresh command was run.
+- No .env values were modified or exposed.
+- The worktree already contained many unrelated Company Admin, Employee, UI, and report changes before this pass; this report scopes the current pass to the files listed below.
+
+Company Admin routes tested
+- php artisan route:list --path=company-admin completed successfully.
+- 103 Company Admin routes were listed.
+- Tested route groups include dashboard, company profile, settings, employees, employee permissions, clients, project requests, projects, tasks, work sessions, attendance, leave requests, documents, payments, invoices, feedback, notifications, reports, activity logs, profile, and password update.
+- Shared employee report routes were tested for delegated permission enforcement.
+
+Pages tested
+- Company Admin dashboard.
+- Client show page cross-company blocking.
+- Task index with same-company and cross-company filters.
+- Attendance index and attendance PDF export.
+- Report preview and report PDF/CSV export.
+- Settings update form.
+
+Forms tested
+- Employee create.
+- Project create.
+- Task create.
+- Project request convert.
+- Payment create and verify.
+- Invoice create.
+- Company settings update.
+- Attendance correction.
+
+Write actions tested
+- Employee creation under authenticated company.
+- Project and task creation with same-company related records.
+- Task status transition blocking.
+- Project request conversion and duplicate conversion blocking.
+- Client-project payment verification.
+- Duplicate payment verification blocking.
+- Payment amount validation.
+- Invoice creation.
+- Invoice paid amount validation.
+- Attendance correction with required reason.
+- Company settings update validation.
+
+Workflows tested
+- Company Admin access with active subscription.
+- Suspended Company Admin direct-session blocking.
+- Company-scoped Client access.
+- Company-scoped Task filters.
+- Project request conversion to Project.
+- Client-project payment verification.
+- Invoice creation and calculation validation.
+- Report filtering, CSV export, PDF export, and delegated Employee export permissions.
+- Attendance visibility, PDF export, correction audit logging, and automatic absence command behavior.
+
+Permission tests
+- Company Admin role can access Company Admin dashboard when active.
+- Employee role cannot access Company Admin dashboard.
+- Suspended Company Admin is forbidden by role middleware even with an existing session.
+- Employee report export requires both report export permission and the module-specific view permission.
+
+Company-isolation tests
+- Company Admin cannot view another company Client.
+- Company Admin cannot filter Tasks by another company's Project.
+- Company Admin report rejects another company's Employee filter.
+- Company Admin attendance page shows only own company attendance.
+- CSV report export excludes another company's Employee records.
+
+CSV/PDF export tests
+- Company Admin Employee CSV export applies filters and stays company-scoped.
+- Company Admin Employee CSV export protects spreadsheet formulas by prefixing risky cells.
+- Company Admin Employee PDF export downloads successfully.
+- Company Admin Attendance PDF export downloads successfully.
+- Work-session, attendance, and Company Admin report CSV writers were updated to sanitize exported rows.
+
+Responsive tests
+- Automated browser viewport testing was not performed in this pass.
+- Vite production build completed successfully, which verifies bundled assets compile.
+
+Bugs found
+- A suspended Company Admin could potentially keep using an existing authenticated session because role middleware did not check user status.
+- Company settings accepted loose timezone, currency, invoice prefix, and default project status values.
+- Project request workflow allowed repeated or invalid state changes and duplicate conversion risk.
+- Task status changes could jump directly to invalid states.
+- Payment verification/rejection allowed repeated or invalid transitions and lacked transaction/audit consistency.
+- Payment requests accepted a zero amount.
+- Payment refund action did not validate the current payment state.
+- Invoice filtering did not reject cross-company Client/Project filter IDs.
+- Invoice numbers were not validated as unique within the current company during form validation.
+- Invoice due date and paid amount validation were too loose.
+- Invoice send/paid/cancel actions did not enforce status transitions consistently.
+- Report, attendance, and work-session CSV exports did not sanitize formula-like values.
+- Employee/project filters in reports, attendance, and work sessions were not always rejected when they belonged to another company.
+
+Root causes
+- Some controllers correctly scoped base queries but did not validate request-supplied filter IDs.
+- Several workflow actions trusted status names without checking legal previous states.
+- Finance forms validated database existence but needed company-specific relationship and calculation rules.
+- CSV export writers used raw fputcsv values without spreadsheet formula protection.
+- Active-account checks were enforced during login but not consistently for already-authenticated sessions.
+
+Bugs fixed
+- Added active-account enforcement to RoleMiddleware.
+- Tightened Company Settings validation.
+- Added project-request transition rules, conversion transaction, audit logging, and duplicate conversion blocking.
+- Added task transition rules and company-scoped task filter validation.
+- Added payment filter validation, positive amount validation, transition checks, transactions, and audit logs.
+- Added invoice filter validation, unique company invoice number validation, due-date validation, paid-amount validation, transitions, transactions, and audit logs.
+- Added CSV formula-injection protection to Company Admin reports, work-session exports, and attendance exports.
+- Added company-scoped Employee/Project filter authorization in reports, work sessions, and attendance.
+
+Files changed in this Company Admin pass
+- app/Http/Middleware/RoleMiddleware.php
+- app/Http/Controllers/CompanyAdmin/SettingController.php
+- app/Http/Controllers/CompanyAdmin/ProjectRequestController.php
+- app/Http/Controllers/CompanyAdmin/TaskController.php
+- app/Http/Controllers/CompanyAdmin/PaymentController.php
+- app/Http/Controllers/CompanyAdmin/InvoiceController.php
+- app/Http/Controllers/CompanyAdmin/ReportController.php
+- app/Http/Controllers/CompanyAdmin/WorkSessionController.php
+- app/Http/Controllers/CompanyAdmin/AttendanceController.php
+- tests/Feature/CompanyAdminModuleTest.php
+- company_admin_test_report.txt
+
+Automated tests passed
+- php -l app/Http/Middleware/RoleMiddleware.php: no syntax errors.
+- php -l app/Http/Controllers/CompanyAdmin/ProjectRequestController.php: no syntax errors.
+- php -l app/Http/Controllers/CompanyAdmin/TaskController.php: no syntax errors.
+- php -l app/Http/Controllers/CompanyAdmin/PaymentController.php: no syntax errors.
+- php -l app/Http/Controllers/CompanyAdmin/InvoiceController.php: no syntax errors.
+- php -l app/Http/Controllers/CompanyAdmin/ReportController.php: no syntax errors.
+- php -l app/Http/Controllers/CompanyAdmin/WorkSessionController.php: no syntax errors.
+- php -l app/Http/Controllers/CompanyAdmin/AttendanceController.php: no syntax errors.
+- php -l app/Http/Controllers/CompanyAdmin/SettingController.php: no syntax errors.
+- php -l tests/Feature/CompanyAdminModuleTest.php: no syntax errors.
+- php artisan test: 114 tests passed, 330 assertions.
+- npm.cmd run build: production Vite build completed successfully.
+- composer install --no-interaction: dependencies verified from lock file; nothing to install, update, or remove.
+- npm.cmd install: packages up to date; 0 vulnerabilities.
+- php artisan route:list --path=company-admin: 103 routes listed.
+- php artisan view:clear: compiled views cleared successfully.
+- php artisan cache:clear: application cache cleared successfully.
+- php artisan config:clear: configuration cache cleared successfully.
+- php artisan migrate: nothing to migrate.
+- php artisan permission:cache-reset: custom Elevanix permission system reported no package cache reset required.
+
+Automated tests failed
+- No automated tests failed after the fixes.
+- npm run build was not used because this Windows PowerShell environment blocks npm.ps1. npm.cmd run build was used and passed.
+
+Manual tests completed
+- Reviewed Company Admin route group and shared Employee delegated report routes.
+- Reviewed Company Admin middleware, active account handling, company approval handling, subscription active handling, and permission middleware.
+- Reviewed Company Admin controllers for employees, employee permissions, clients, project requests, projects, tasks, work sessions, attendance, leave, documents, payments, invoices, reports, settings, dashboard, activity logs, notifications, profile, and password.
+- Reviewed model fillables/casts for finance, project request, work session, attendance, and user-related flows.
+- Reviewed existing Company Admin Blade files list and route references.
+
+Remaining issues
+- Browser console testing and full responsive viewport testing were not performed in this pass.
+- Real SMTP mail delivery was not exercised; mail credentials were not touched.
+- Some large UI/UX items in the brief require browser automation to fully verify dropdowns, chart rendering, mobile sidebar behavior, modal focus, and table wrapping.
+- Some Company Admin workflows are intentionally lightweight in the current project, such as invoice emailing and partial payments; this pass hardened the existing implementation rather than adding new product scope.
+
+Future improvements
+- Add browser automation coverage for all Company Admin GET pages at 320px, 375px, 425px, 768px, 1024px, 1366px, 1440px, and 1920px.
+- Add feature tests for every Company Admin GET route with seeded detail records.
+- Add dedicated mail fakes/tests for employee creation, payment verification, invoice sent, leave approval/rejection, and task assignment notifications.
+- Add CSV/PDF export tests for work sessions and attendance formula-injection protection, matching the existing Company Admin report CSV test.
+- Add audit-log assertions for more write actions, especially Employee, Project, Task, Invoice, Payment, and Project Request workflows.

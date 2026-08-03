@@ -16,6 +16,10 @@ class RoleMiddleware
             abort(403, 'You do not have permission to access this page.');
         }
 
+        if ($user->status !== 'active') {
+            abort(403, 'Your user account is not active.');
+        }
+
         return $next($request);
     }
 }

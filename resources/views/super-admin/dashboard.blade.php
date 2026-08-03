@@ -35,13 +35,13 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-lg-6"><section class="content-card"><h2>Company Growth</h2><canvas data-chart="companyGrowth"></canvas></section></div>
-    <div class="col-lg-6"><section class="content-card"><h2>Subscription Revenue</h2><canvas data-chart="revenueGrowth"></canvas></section></div>
-    <div class="col-lg-4"><section class="content-card"><h2>Company Status</h2><canvas data-chart="companyStatus"></canvas></section></div>
-    <div class="col-lg-4"><section class="content-card"><h2>Plan Usage</h2><canvas data-chart="planUsage"></canvas></section></div>
-    <div class="col-lg-4"><section class="content-card"><h2>Project Status</h2><canvas data-chart="platformProjectStatus"></canvas></section></div>
-    <div class="col-lg-6"><section class="content-card"><h2>User Growth</h2><canvas data-chart="platformUserGrowth"></canvas></section></div>
-    <div class="col-lg-6"><section class="content-card"><h2>Task Status</h2><canvas data-chart="platformTaskStatus"></canvas></section></div>
+    <div class="col-lg-6"><section class="content-card h-100"><h2>Company Growth</h2><div class="dashboard-chart-wrapper"><canvas id="superAdminCompanyGrowthChart" data-chart="companyGrowth" role="img" aria-label="Monthly company registration growth chart"></canvas></div></section></div>
+    <div class="col-lg-6"><section class="content-card h-100"><h2>Subscription Revenue</h2><div class="dashboard-chart-wrapper"><canvas id="superAdminRevenueGrowthChart" data-chart="revenueGrowth" role="img" aria-label="Monthly subscription revenue chart"></canvas></div></section></div>
+    <div class="col-lg-4"><section class="content-card h-100"><h2>Company Status</h2><div class="dashboard-pie-wrapper chart-medium"><canvas id="superAdminCompanyStatusChart" data-chart="companyStatus" role="img" aria-label="Company status distribution chart"></canvas></div></section></div>
+    <div class="col-lg-4"><section class="content-card h-100"><h2>Plan Usage</h2><div class="dashboard-pie-wrapper chart-medium"><canvas id="superAdminPlanUsageChart" data-chart="planUsage" role="img" aria-label="Subscription plan usage chart"></canvas></div></section></div>
+    <div class="col-lg-4"><section class="content-card h-100"><h2>Project Status</h2><div class="dashboard-pie-wrapper chart-medium"><canvas id="superAdminProjectStatusChart" data-chart="platformProjectStatus" role="img" aria-label="Platform project status distribution chart"></canvas></div></section></div>
+    <div class="col-lg-6"><section class="content-card h-100"><h2>User Growth</h2><div class="dashboard-chart-wrapper"><canvas id="superAdminUserGrowthChart" data-chart="platformUserGrowth" role="img" aria-label="Monthly platform user growth chart"></canvas></div></section></div>
+    <div class="col-lg-6"><section class="content-card h-100"><h2>Task Status</h2><div class="dashboard-pie-wrapper chart-medium"><canvas id="superAdminTaskStatusChart" data-chart="platformTaskStatus" role="img" aria-label="Platform task status distribution chart"></canvas></div></section></div>
 </div>
 
 <div class="row g-3">
@@ -82,7 +82,6 @@
         </section>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     window.elevanixDashboardCharts = {
         labels: @json($chartLabels),

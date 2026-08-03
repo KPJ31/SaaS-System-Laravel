@@ -55,29 +55,63 @@ class PaymentController extends Controller
     {
         abort_unless(in_array($status, ['verified', 'rejected', 'failed', 'refunded'], true), 404);
 
-        $data = $request->validate(['verification_note' => ['nullable', 'string', 'max:1000']]);
-        $old = $payment->only(['status', 'verified_by', 'verified_at', 'verification_note']);
-        $payment->update([
-            'status' => $status,
-            'verified_by' => auth()->id(),
-            'verified_at' => now(),
-            'verification_note' => $data['verification_note'] ?? null,
-        ]);
+        if (! $this->canTransition($payment->status, $status)) {
+            return back()->with('error', 'This payment cannot be changed from '.$payment->status.' to '.$status.'.');
+        }
 
-        AuditLog::create([
-            'company_id' => $payment->company_id,
-            'user_id' => auth()->id(),
-            'action' => 'payment_'.$status,
-            'module' => 'Payments and Revenue',
-            'auditable_type' => Payment::class,
-            'auditable_id' => $payment->id,
-            'description' => ucfirst($status).' payment '.($payment->transaction_reference ?: '#'.$payment->id),
-            'old_values' => $old,
-            'new_values' => $payment->only(['status', 'verified_by', 'verified_at', 'verification_note']),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+        $data = $request->validate(['verification_note' => ['nullable', 'string', 'max:1000']]);
+
+        DB::transaction(function () use ($request, $payment, $status, $data): void {
+            $old = $payment->only(['status', 'verified_by', 'verified_at', 'verification_note']);
+            $payment->update([
+                'status' => $status,
+                'verified_by' => auth()->id(),
+                'verified_at' => now(),
+                'verification_note' => $data['verification_note'] ?? null,
+            ]);
+
+            if ($status === 'verified' && $payment->payment_type === 'subscription' && $payment->subscription) {
+                $renewFrom = $payment->subscription->renews_at && $payment->subscription->renews_at->isFuture()
+                    ? $payment->subscription->renews_at
+                    : now();
+
+                $payment->subscription->update([
+                    'status' => 'active',
+                    'subscription_plan_id' => $payment->subscription_plan_id ?: $payment->subscription->subscription_plan_id,
+                    'monthly_price' => $payment->amount,
+                    'renews_at' => $renewFrom->copy()->addMonth()->toDateString(),
+                    'ends_at' => null,
+                ]);
+            }
+
+            AuditLog::create([
+                'company_id' => $payment->company_id,
+                'user_id' => auth()->id(),
+                'action' => 'payment_'.$status,
+                'module' => 'Payments and Revenue',
+                'auditable_type' => Payment::class,
+                'auditable_id' => $payment->id,
+                'description' => ucfirst($status).' payment '.($payment->transaction_reference ?: '#'.$payment->id),
+                'old_values' => $old,
+                'new_values' => $payment->only(['status', 'verified_by', 'verified_at', 'verification_note']),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        });
 
         return back()->with('success', 'Payment status updated.');
+    }
+
+    private function canTransition(string $currentStatus, string $newStatus): bool
+    {
+        if ($currentStatus === $newStatus) {
+            return false;
+        }
+
+        return match ($currentStatus) {
+            'pending', 'submitted', 'proof_submitted' => in_array($newStatus, ['verified', 'rejected', 'failed'], true),
+            'verified', 'received', 'paid' => $newStatus === 'refunded',
+            default => false,
+        };
     }
 }

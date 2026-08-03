@@ -1,10 +1,11 @@
 @php
     $class = match ($status) {
-        'active', 'approved', 'received', 'done', 'completed', 'paid', 'trialing' => 'success',
-        'pending', 'planning', 'todo', 'draft', 'unpaid', 'paused' => 'warning',
+        'active', 'approved', 'received', 'done', 'completed', 'paid', 'trialing', 'present' => 'success',
+        'pending', 'planning', 'todo', 'draft', 'unpaid', 'paused', 'late', 'not_checked_in' => 'warning',
         'suspended', 'rejected', 'overdue', 'cancelled', 'inactive', 'expired' => 'danger',
-        'blocked' => 'danger',
-        'in_progress', 'submitted', 'under_review', 'assigned' => 'info',
+        'blocked', 'absent' => 'danger',
+        'in_progress', 'submitted', 'under_review', 'assigned', 'half_day', 'early_departure' => 'info',
+        'on_leave', 'holiday', 'weekend' => 'info',
         default => 'info',
     };
 @endphp

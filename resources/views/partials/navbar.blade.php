@@ -3,6 +3,9 @@
     $topbarPrefix = $topbarUser->role === 'super_admin' ? 'super-admin' : ($topbarUser->role === 'company_admin' ? 'company-admin' : 'employee');
     $topbarRole = $topbarUser->role === 'super_admin' ? 'Super Admin' : ($topbarUser->role === 'company_admin' ? 'Company Admin' : 'Employee');
     $topbarCompany = $topbarUser->company?->name;
+    $passwordUrl = $topbarUser->role === 'employee' && Route::has('employee.password.edit')
+        ? route('employee.password.edit')
+        : (Route::has($topbarPrefix.'.profile.show') ? route($topbarPrefix.'.profile.show').'#change-password' : null);
     $unreadCount = $topbarUser->unreadNotifications()->count();
 @endphp
 <nav class="top-navbar" aria-label="Top navigation">
@@ -56,6 +59,12 @@
                 <li><hr class="dropdown-divider"></li>
                 @if(Route::has($topbarPrefix.'.profile.show'))
                     <li><a class="dropdown-item" href="{{ route($topbarPrefix.'.profile.show') }}"><i class="fa-solid fa-user-circle me-2" aria-hidden="true"></i>My Profile</a></li>
+                @endif
+                @if($topbarUser->role === 'company_admin' && Route::has('company-admin.company-profile.show'))
+                    <li><a class="dropdown-item" href="{{ route('company-admin.company-profile.show') }}"><i class="fa-solid fa-building me-2" aria-hidden="true"></i>Company Profile</a></li>
+                @endif
+                @if($passwordUrl)
+                    <li><a class="dropdown-item" href="{{ $passwordUrl }}"><i class="fa-solid fa-key me-2" aria-hidden="true"></i>Change Password</a></li>
                 @endif
                 <li>
                     <form method="POST" action="{{ route('logout') }}" data-confirm="Sign out of Elevanix?">

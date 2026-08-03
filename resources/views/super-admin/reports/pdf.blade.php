@@ -47,7 +47,15 @@
 </head>
 <body>
     <h1>{{ $title }}</h1>
-    <div class="meta">Generated on {{ $generatedAt->format('M d, Y h:i A') }} | {{ $rows->count() }} records</div>
+    <div class="meta">
+        Generated on {{ $generatedAt->format('M d, Y h:i A') }} | {{ $rows->count() }} records
+        @if(! empty($filters))
+            <br>Filters:
+            @foreach($filters as $label => $value)
+                {{ $label }}: {{ $value }}@if(! $loop->last), @endif
+            @endforeach
+        @endif
+    </div>
 
     <table>
         <thead>

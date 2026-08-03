@@ -31,13 +31,16 @@ class WorkTimerService
 
         return DB::transaction(function () use ($user, $project, $task, $notes): WorkSession {
             $active = WorkSession::query()
+                ->where('company_id', $user->company_id)
                 ->where('user_id', $user->id)
+                ->where('status', 'running')
                 ->whereNull('ended_at')
                 ->lockForUpdate()
-                ->exists();
+                ->first();
 
             if ($active) {
-                throw ValidationException::withMessages(['timer' => 'Stop the active work timer before starting another one.']);
+                $taskTitle = $active->task?->title ? ' for '.$active->task->title : '';
+                throw ValidationException::withMessages(['timer' => 'You already have an active timer'.$taskTitle.'. Stop the current timer before starting a new one.']);
             }
 
             $session = WorkSession::create([
@@ -64,20 +67,28 @@ class WorkTimerService
             throw ValidationException::withMessages(['timer' => 'The selected work session is not available.']);
         }
 
-        if ($workSession->ended_at !== null) {
-            throw ValidationException::withMessages(['timer' => 'This work session has already been stopped.']);
-        }
+        return DB::transaction(function () use ($workSession, $notes): WorkSession {
+            $workSession = WorkSession::whereKey($workSession->id)->lockForUpdate()->firstOrFail();
 
-        $endedAt = now();
-        $duration = max(1, $workSession->started_at->diffInMinutes($endedAt));
+            if ($workSession->ended_at !== null) {
+                throw ValidationException::withMessages(['timer' => 'This work session has already been stopped.']);
+            }
 
-        $workSession->forceFill([
-            'ended_at' => $endedAt,
-            'duration_minutes' => $duration,
-            'notes' => $notes ?? $workSession->notes,
-            'status' => 'stopped',
-        ])->save();
+            if ($workSession->status !== 'running') {
+                throw ValidationException::withMessages(['timer' => 'No active work session was found for this task.']);
+            }
 
-        return $workSession->refresh();
+            $endedAt = now();
+            $duration = max(1, $workSession->started_at->diffInMinutes($endedAt));
+
+            $workSession->forceFill([
+                'ended_at' => $endedAt,
+                'duration_minutes' => $duration,
+                'notes' => $notes ?? $workSession->notes,
+                'status' => 'stopped',
+            ])->save();
+
+            return $workSession->refresh();
+        });
     }
 }

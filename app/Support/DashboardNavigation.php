@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Attendance;
 use App\Models\CompanyRegistrationRequest;
 use App\Models\Invoice;
 use App\Models\LeaveRequest;
@@ -10,6 +11,7 @@ use App\Models\ProjectRequest;
 use App\Models\Subscription;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\WorkSession;
 
 class DashboardNavigation
 {
@@ -24,7 +26,6 @@ class DashboardNavigation
                 'company_admin' => self::companyAdmin($user),
                 default => self::employee($user),
             },
-            'footer' => self::footer($user),
         ];
     }
 
@@ -128,6 +129,12 @@ class DashboardNavigation
                     self::item('Running Timers', 'fa-stopwatch', 'company-admin.work-sessions.index', 'company-admin.work-sessions.index', $counts['runningTimers'], [], ['status' => 'running']),
                     self::item('Time Reports', 'fa-chart-line', 'company-admin.reports.show', 'company-admin.reports.show', null, [], ['report' => 'work-hours']),
                 ]),
+                self::item('Attendance', 'fa-calendar-days', 'company-admin.attendance.index', 'company-admin.attendance.*', $counts['lateToday'] + $counts['absentToday'], [
+                    self::item('Attendance Overview', 'fa-calendar-days', 'company-admin.attendance.index', 'company-admin.attendance.*'),
+                    self::item('Late Today', 'fa-clock-rotate-left', 'company-admin.attendance.index', 'company-admin.attendance.index', $counts['lateToday'], [], ['status' => 'late']),
+                    self::item('Absent Today', 'fa-user-xmark', 'company-admin.attendance.index', 'company-admin.attendance.index', $counts['absentToday'], [], ['status' => 'absent']),
+                    self::item('Attendance Reports', 'fa-file-export', 'company-admin.attendance.export', 'company-admin.attendance.export'),
+                ]),
                 self::item('Leave Requests', 'fa-calendar-check', 'company-admin.leave-requests.index', 'company-admin.leave-requests.*', $counts['pendingLeaveRequests'], [
                     self::item('All Leave Requests', 'fa-calendar-check', 'company-admin.leave-requests.index', 'company-admin.leave-requests.*'),
                     self::item('Pending Requests', 'fa-hourglass-half', 'company-admin.leave-requests.index', 'company-admin.leave-requests.index', $counts['pendingLeaveRequests'], [], ['status' => 'pending']),
@@ -166,7 +173,7 @@ class DashboardNavigation
         $counts = self::companyCounts((int) $user->company_id, $user);
         $ownCounts = [
             'myTasks' => Task::where('company_id', $user->company_id)->where('assignee_id', $user->id)->whereIn('status', ['todo', 'assigned', 'in_progress', 'paused', 'blocked'])->count(),
-            'activeTimer' => \App\Models\WorkSession::where('company_id', $user->company_id)->where('user_id', $user->id)->whereNull('ended_at')->count(),
+            'activeTimer' => WorkSession::where('company_id', $user->company_id)->where('user_id', $user->id)->whereNull('ended_at')->count(),
             'pendingLeaves' => LeaveRequest::where('company_id', $user->company_id)->where('user_id', $user->id)->where('status', 'pending')->count(),
         ];
 
@@ -183,6 +190,7 @@ class DashboardNavigation
                     self::item('Submitted Tasks', 'fa-paper-plane', 'employee.tasks.index', 'employee.tasks.index', null, [], ['status' => 'submitted']),
                 ]),
                 self::item('Time Tracking', 'fa-clock', 'employee.work-sessions.index', ['employee.work-sessions.*', 'employee.tasks.show'], $ownCounts['activeTimer'], [
+                    self::item('Attendance', 'fa-calendar-days', 'employee.attendance.index', 'employee.attendance.*'),
                     self::item('Active Timer', 'fa-stopwatch', 'employee.tasks.index', 'employee.tasks.show', $ownCounts['activeTimer']),
                     self::item('My Work Sessions', 'fa-clock', 'employee.work-sessions.index', 'employee.work-sessions.*'),
                 ]),
@@ -214,7 +222,9 @@ class DashboardNavigation
             'pendingProjectRequests' => ProjectRequest::where('company_id', $companyId)->whereIn('status', ['pending', 'under_review'])->count(),
             'overdueTasks' => Task::where('company_id', $companyId)->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled'])->count(),
             'submittedTasks' => Task::where('company_id', $companyId)->whereIn('status', ['submitted', 'under_review'])->count(),
-            'runningTimers' => \App\Models\WorkSession::where('company_id', $companyId)->whereNull('ended_at')->count(),
+            'runningTimers' => WorkSession::where('company_id', $companyId)->whereNull('ended_at')->count(),
+            'lateToday' => Attendance::where('company_id', $companyId)->whereDate('attendance_date', today())->where('is_late', true)->count(),
+            'absentToday' => Attendance::where('company_id', $companyId)->whereDate('attendance_date', today())->where('status', 'absent')->count(),
             'pendingLeaveRequests' => LeaveRequest::where('company_id', $companyId)->where('status', 'pending')->count(),
             'pendingPayments' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count(),
             'overdueInvoices' => Invoice::where('company_id', $companyId)->where('status', 'overdue')->count(),
@@ -291,26 +301,38 @@ class DashboardNavigation
     private static function summary(User $user): array
     {
         if ($user->role === 'company_admin') {
+            $companyName = $user->company?->name ?? 'Company Workspace';
+
             return [
-                'title' => $user->company?->name ?? $user->name,
+                'title' => $companyName,
                 'subtitle' => 'Company Admin',
                 'image' => $user->company?->logo_path,
-                'fallback' => $user->company?->name ?? $user->name,
+                'fallback' => $companyName,
+                'link' => route('company-admin.company-profile.show'),
+                'meta' => null,
+            ];
+        }
+
+        if ($user->role === 'employee') {
+            $companyName = $user->company?->name ?? 'Company Workspace';
+
+            return [
+                'title' => $companyName,
+                'subtitle' => 'Employee',
+                'image' => $user->company?->logo_path,
+                'fallback' => $companyName,
+                'link' => route('employee.profile.show'),
+                'meta' => $user->name,
             ];
         }
 
         return [
-            'title' => $user->name,
-            'subtitle' => $user->role === 'employee' ? ($user->job_title ?: 'Employee') : 'Super Admin',
+            'title' => $user->name ?: 'User',
+            'subtitle' => 'Super Admin',
             'image' => $user->avatar,
-            'fallback' => $user->name,
-        ];
-    }
-
-    private static function footer(User $user): array
-    {
-        return [
-            self::item('Visit Website', 'fa-globe', 'home', 'home'),
+            'fallback' => $user->name ?: 'User',
+            'link' => route('super-admin.profile.show'),
+            'meta' => null,
         ];
     }
 

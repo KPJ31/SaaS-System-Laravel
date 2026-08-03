@@ -4,29 +4,20 @@
 @endphp
 
 <aside class="app-sidebar" data-sidebar id="app-sidebar" aria-label="Workspace navigation">
-    <div class="sidebar-header">
-        <a href="{{ route('dashboard') }}" class="sidebar-brand text-decoration-none" aria-label="Elevanix dashboard">
-            @include('partials.brand-logo', ['variant' => 'icon', 'tone' => 'light'])
-            <span>
-                <strong>Elevanix</strong>
-                <small>{{ $navigation['roleLabel'] }} Dashboard</small>
-            </span>
-        </a>
+    <div class="sidebar-top">
+        <x-dashboard.sidebar-account-card
+            :image="$summary['image']"
+            :initials="$summary['fallback']"
+            :primary-text="$summary['title']"
+            :secondary-text="$summary['subtitle']"
+            :tertiary-text="$summary['meta'] ?? null"
+            :link="$summary['link'] ?? null"
+            :title="$summary['title']"
+        />
+
         <button class="icon-btn d-lg-none" type="button" data-sidebar-close aria-label="Close sidebar">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
-    </div>
-
-    <div class="sidebar-user">
-        @if($summary['image'])
-            <img class="sidebar-avatar" src="{{ asset('storage/'.$summary['image']) }}" alt="{{ $summary['title'] }}">
-        @else
-            <span class="sidebar-avatar">{{ strtoupper(substr($summary['fallback'], 0, 1)) }}</span>
-        @endif
-        <span>
-            <strong>{{ $summary['title'] }}</strong>
-            <small>{{ $summary['subtitle'] }}</small>
-        </span>
     </div>
 
     @if($navigation['warning'])
@@ -36,7 +27,7 @@
         </a>
     @endif
 
-    <nav class="sidebar-navigation" aria-label="Main menu">
+    <nav class="sidebar-navigation dashboard-sidebar-menu" aria-label="Main menu">
         @foreach($navigation['groups'] as $group)
             <section class="sidebar-group" aria-label="{{ $group['label'] }}">
                 <div class="menu-label">{{ $group['label'] }}</div>
@@ -83,20 +74,4 @@
             </section>
         @endforeach
     </nav>
-
-    <div class="sidebar-footer">
-        @foreach($navigation['footer'] as $item)
-            <a class="sidebar-footer-link" href="{{ $item['url'] }}">
-                <i class="fa-solid {{ $item['icon'] }}" aria-hidden="true"></i>
-                <span>{{ $item['label'] }}</span>
-            </a>
-        @endforeach
-        <form method="POST" action="{{ route('logout') }}" data-confirm="Sign out of Elevanix?">
-            @csrf
-            <button class="sidebar-logout" type="submit">
-                <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
-                <span>Logout</span>
-            </button>
-        </form>
-    </div>
 </aside>

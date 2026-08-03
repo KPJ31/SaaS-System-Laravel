@@ -29,6 +29,46 @@
     </section>
 @endif
 
+<section class="content-card mb-3">
+    <div class="content-card-header">
+        <div>
+            <h2>Today Attendance</h2>
+            <p>{{ now($attendanceSettings['timezone'])->format('l, M d, Y') }} | Expected {{ $attendanceSettings['work_start_time'] }} - {{ $attendanceSettings['work_end_time'] }} | Lunch {{ $attendanceSettings['lunch_break_minutes'] }} min</p>
+        </div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ route('employee.attendance.index') }}"><i class="fa-solid fa-calendar-days"></i>History</a>
+    </div>
+    <div class="attendance-card-grid">
+        <div>
+            <span class="helper-text">Status</span>
+            <div class="mt-1">@include('partials.status-badge', ['status' => $attendance?->status ?? 'not_checked_in'])</div>
+        </div>
+        <div><span class="helper-text">Check In</span><strong>{{ $attendance?->check_in_time?->format('H:i') ?? '-' }}</strong></div>
+        <div><span class="helper-text">Check Out</span><strong>{{ $attendance?->check_out_time?->format('H:i') ?? '-' }}</strong></div>
+        <div><span class="helper-text">Attendance Net</span><strong>{{ $attendance ? round($attendance->net_work_minutes / 60, 2).' h' : '0 h' }}</strong></div>
+        <div><span class="helper-text">Task Work Today</span><strong>{{ round($attendanceSummary['todayTaskMinutes'] / 60, 2) }} h</strong></div>
+        <div><span class="helper-text">Unallocated Time</span><strong>{{ round($attendanceSummary['unallocatedMinutes'] / 60, 2) }} h</strong></div>
+    </div>
+    @if($attendance?->is_late)
+        <div class="alert alert-warning mt-3 mb-0">Late arrival recorded: {{ $attendance->late_minutes }} minutes.</div>
+    @endif
+    @if($attendance?->is_early_departure)
+        <div class="alert alert-info mt-3 mb-0">Early departure recorded: {{ $attendance->early_departure_minutes }} minutes.</div>
+    @endif
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        @if(! $attendance)
+            <form method="POST" action="{{ route('employee.attendance.check-in') }}" data-confirm="Check in for today?">@csrf<button class="btn btn-primary" type="submit"><i class="fa-solid fa-right-to-bracket"></i>Check In</button></form>
+        @elseif(! $attendance->check_out_time)
+            <form method="POST" action="{{ route('employee.attendance.check-out') }}" data-confirm="Check out for today?">
+                @csrf
+                <input type="hidden" name="note" value="Checked out from dashboard">
+                <button class="btn btn-outline-danger" type="submit"><i class="fa-solid fa-right-from-bracket"></i>Check Out</button>
+            </form>
+        @else
+            <span class="helper-text">Attendance is completed for today.</span>
+        @endif
+    </div>
+</section>
+
 <div class="stat-grid">
     @foreach([
         ['Projects', $stats['totalProjects'], 'fa-diagram-project'],
@@ -84,9 +124,13 @@
     </section>
     <section class="content-card">
         <div class="content-card-header"><div><h2>Charts</h2><p>Hours and task status.</p></div></div>
-        <canvas data-chart="employeeWeeklyHours" height="150"></canvas>
+        <div class="dashboard-chart-wrapper chart-small">
+            <canvas id="employeeWeeklyHoursChart" data-chart="employeeWeeklyHours" role="img" aria-label="Weekly tracked work hours chart"></canvas>
+        </div>
         <hr>
-        <canvas data-chart="employeeTaskStatus" height="150"></canvas>
+        <div class="dashboard-pie-wrapper chart-small">
+            <canvas id="employeeTaskStatusChart" data-chart="employeeTaskStatus" role="img" aria-label="Employee task status distribution chart"></canvas>
+        </div>
     </section>
 </div>
 

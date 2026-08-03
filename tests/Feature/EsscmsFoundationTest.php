@@ -1,19 +1,19 @@
 <?php
 
+use App\Models\Client;
 use App\Models\Company;
 use App\Models\CompanyRegistrationRequest;
-use App\Models\Client;
-use App\Models\Project;
 use App\Models\Payment;
+use App\Models\Project;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\SystemSetting;
 use App\Models\Task;
 use App\Models\User;
-use App\Services\WorkTimerService;
 use App\Notifications\CompanyRegistrationApproved;
-use App\Notifications\CompanyRegistrationRejected;
 use App\Notifications\CompanyRegistrationReceived;
+use App\Notifications\CompanyRegistrationRejected;
+use App\Services\WorkTimerService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -255,12 +255,33 @@ test('super admin can create subscription plan', function () {
 test('super admin can suspend company', function () {
     $superAdmin = makeUser(['email' => 'super@elevanix.test', 'username' => 'super']);
     $company = makeCompany(['status' => 'active']);
+    $admin = makeUser(['company_id' => $company->id, 'role' => 'company_admin', 'status' => 'active']);
 
     $this->actingAs($superAdmin)
-        ->post(route('super-admin.companies.status', [$company, 'suspended']))
+        ->post(route('super-admin.companies.status', [$company, 'suspended']), ['reason' => 'Subscription payment is overdue.'])
         ->assertRedirect();
 
     $this->assertDatabaseHas('companies', ['id' => $company->id, 'status' => 'suspended']);
+    $this->assertDatabaseHas('users', ['id' => $admin->id, 'status' => 'suspended']);
+});
+
+test('company suspension requires a reason', function () {
+    $superAdmin = makeUser(['email' => 'reason-admin@example.test', 'username' => 'reasonadmin']);
+    $company = makeCompany(['status' => 'active']);
+
+    $this->actingAs($superAdmin)
+        ->from(route('super-admin.companies.show', $company))
+        ->post(route('super-admin.companies.status', [$company, 'suspended']))
+        ->assertSessionHasErrors('reason');
+});
+
+test('duplicate company approval is blocked', function () {
+    $superAdmin = makeUser(['email' => 'duplicate-admin@example.test', 'username' => 'duplicateadmin']);
+    $company = makeCompany(['status' => 'active']);
+
+    $this->actingAs($superAdmin)
+        ->post(route('super-admin.companies.status', [$company, 'active']))
+        ->assertSessionHas('error');
 });
 
 test('super admin can update subscription plan', function () {
@@ -345,6 +366,28 @@ test('super admin can verify subscription payment', function () {
         'verified_by' => $superAdmin->id,
         'verification_note' => 'Bank receipt matched.',
     ]);
+
+    $this->assertDatabaseHas('subscriptions', [
+        'id' => $subscription->id,
+        'status' => 'active',
+    ]);
+});
+
+test('verified payment cannot be verified twice', function () {
+    $superAdmin = makeUser(['email' => 'payment-repeat-admin@example.test', 'username' => 'paymentrepeatadmin']);
+    $company = makeCompany();
+    $payment = Payment::create([
+        'company_id' => $company->id,
+        'transaction_reference' => 'SUB-TEST-REPEAT',
+        'payment_type' => 'subscription',
+        'amount' => 49,
+        'method' => 'bank_transfer',
+        'status' => 'verified',
+    ]);
+
+    $this->actingAs($superAdmin)
+        ->post(route('super-admin.payments.status', [$payment, 'verified']), ['verification_note' => 'Duplicate check.'])
+        ->assertSessionHas('error');
 });
 
 test('super admin can view report before download', function () {
@@ -369,6 +412,20 @@ test('super admin can download report pdf', function () {
 
     $response->assertOk();
     expect($response->headers->get('content-type'))->toContain('application/pdf');
+});
+
+test('super admin csv report applies search filters', function () {
+    $superAdmin = makeUser(['email' => 'filtered-report-admin@example.test', 'username' => 'filteredreportadmin']);
+    makeCompany(['name' => 'Visible Export Company', 'email' => 'visible-export@example.test']);
+    makeCompany(['name' => 'Hidden Export Company', 'email' => 'hidden-export@example.test']);
+
+    $response = $this->actingAs($superAdmin)
+        ->get(route('super-admin.reports.export', ['report' => 'companies', 'search' => 'Visible Export']));
+
+    $response->assertOk();
+    expect($response->streamedContent())
+        ->toContain('Visible Export Company')
+        ->not->toContain('Hidden Export Company');
 });
 
 test('company admin dashboard requires active subscription', function () {
@@ -472,7 +529,7 @@ test('work timer prevents duplicate active sessions', function () {
     app(WorkTimerService::class)->start($employee);
 
     app(WorkTimerService::class)->start($employee);
-})->throws(ValidationException::class, 'Stop the active work timer before starting another one.');
+})->throws(ValidationException::class, 'Stop the current timer before starting a new one.');
 
 test('work timer stop stores duration in minutes', function () {
     $company = makeCompany();

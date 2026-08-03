@@ -8,9 +8,9 @@ use App\Models\Project;
 use App\Models\User;
 use App\Models\WorkSession;
 use App\Services\AuditLogger;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Response;
 use Illuminate\View\View;
 
 class WorkSessionController extends Controller
@@ -34,24 +34,26 @@ class WorkSessionController extends Controller
     public function export(Request $request)
     {
         $rows = $this->filtered($request)->latest('started_at')->get();
-        $csv = "Employee,Project,Task,Started,Ended,Minutes,Notes\n";
 
-        foreach ($rows as $session) {
-            $csv .= collect([
-                $session->user?->name,
-                $session->project?->name,
-                $session->task?->title,
-                $session->started_at?->toDateTimeString(),
-                $session->ended_at?->toDateTimeString(),
-                $session->duration_minutes,
-                str_replace(["\r", "\n", ','], ' ', (string) $session->notes),
-            ])->map(fn ($value) => '"'.$value.'"')->implode(',')."\n";
-        }
+        return response()->streamDownload(function () use ($request, $rows): void {
+            $out = fopen('php://output', 'w');
+            $this->writeCsv($out, 'Work Sessions Report', $this->workSessionHeaders(), $this->workSessionRows($rows), $request);
+            fclose($out);
+        }, 'work-sessions.csv', ['Content-Type' => 'text/csv']);
+    }
 
-        return Response::make($csv, 200, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="work-sessions.csv"',
-        ]);
+    public function exportPdf(Request $request)
+    {
+        $rows = $this->filtered($request)->latest('started_at')->get();
+
+        return Pdf::loadView('reports.table-pdf', [
+            'title' => 'Work Sessions Report',
+            'scope' => $this->company()->name,
+            'generatedAt' => now(),
+            'headers' => $this->workSessionHeaders(),
+            'rows' => $this->workSessionRows($rows),
+            'filters' => $this->activeFilters($request),
+        ])->setPaper('a4', 'landscape')->download('work-sessions.pdf');
     }
 
     public function update(Request $request, WorkSession $workSession, AuditLogger $logger): RedirectResponse
@@ -80,6 +82,8 @@ class WorkSessionController extends Controller
 
     private function filtered(Request $request)
     {
+        $this->authorizeFilters($request);
+
         return WorkSession::with(['user', 'project', 'task'])
             ->where('company_id', $this->companyId())
             ->when($request->status === 'running', fn ($query) => $query->whereNull('ended_at'))
@@ -87,5 +91,68 @@ class WorkSessionController extends Controller
             ->when($request->project_id, fn ($query, $projectId) => $query->where('project_id', $projectId))
             ->when($request->date_from, fn ($query, $date) => $query->whereDate('started_at', '>=', $date))
             ->when($request->date_to, fn ($query, $date) => $query->whereDate('started_at', '<=', $date));
+    }
+
+    private function workSessionHeaders(): array
+    {
+        return ['Employee', 'Project', 'Task', 'Started', 'Ended', 'Minutes', 'Notes'];
+    }
+
+    private function workSessionRows($rows)
+    {
+        return $rows->map(fn (WorkSession $session) => [
+            $session->user?->name ?? '-',
+            $session->project?->name ?? '-',
+            $session->task?->title ?? '-',
+            $session->started_at?->toDateTimeString() ?? '-',
+            $session->ended_at?->toDateTimeString() ?? 'Running',
+            $session->duration_minutes,
+            $session->notes ?? '-',
+        ]);
+    }
+
+    private function writeCsv($out, string $title, array $headers, $rows, Request $request): void
+    {
+        fputcsv($out, $this->safeCsvRow([$title]));
+        fputcsv($out, $this->safeCsvRow(['Company', $this->company()->name]));
+        fputcsv($out, $this->safeCsvRow(['Generated At', now()->format('Y-m-d H:i')]));
+        foreach ($this->activeFilters($request) as $label => $value) {
+            fputcsv($out, $this->safeCsvRow([$label, $value]));
+        }
+        fputcsv($out, []);
+        fputcsv($out, $this->safeCsvRow($headers));
+        foreach ($rows as $row) {
+            fputcsv($out, $this->safeCsvRow($row));
+        }
+    }
+
+    private function activeFilters(Request $request): array
+    {
+        return collect($request->only(['employee_id', 'project_id', 'date_from', 'date_to', 'status']))
+            ->filter(fn ($value) => filled($value))
+            ->mapWithKeys(fn ($value, $key) => [str_replace('_', ' ', ucfirst($key)) => (string) $value])
+            ->all();
+    }
+
+    private function authorizeFilters(Request $request): void
+    {
+        if ($request->filled('employee_id')) {
+            abort_unless(User::where('company_id', $this->companyId())->where('role', 'employee')->whereKey($request->integer('employee_id'))->exists(), 403);
+        }
+
+        if ($request->filled('project_id')) {
+            abort_unless(Project::where('company_id', $this->companyId())->whereKey($request->integer('project_id'))->exists(), 403);
+        }
+    }
+
+    private function safeCsvRow(iterable $row): array
+    {
+        return collect($row)
+            ->map(function ($value): string {
+                $value = (string) $value;
+
+                return preg_match('/^[=+\-@]/', $value) ? "'".$value : $value;
+            })
+            ->all();
     }
 }

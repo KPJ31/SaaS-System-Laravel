@@ -44,9 +44,9 @@ class CompanySubscriptionController extends Controller
         $data = $request->validate([
             'subscription_plan_id' => ['required', 'exists:subscription_plans,id'],
             'starts_at' => ['required', 'date'],
-            'trial_ends_at' => ['nullable', 'date'],
-            'renews_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date'],
+            'trial_ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'renews_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'monthly_price' => ['required', 'numeric', 'min:0'],
             'status' => ['required', 'in:trialing,active,expired,cancelled,suspended'],
         ]);
@@ -61,6 +61,10 @@ class CompanySubscriptionController extends Controller
     public function updateStatus(Subscription $subscription, string $status): RedirectResponse
     {
         abort_unless(in_array($status, ['active', 'expired', 'cancelled', 'suspended'], true), 404);
+
+        if (! $this->canTransition($subscription->status, $status)) {
+            return back()->with('error', 'This subscription cannot be changed from '.$subscription->status.' to '.$status.'.');
+        }
 
         $old = ['status' => $subscription->status];
         $subscription->update(['status' => $status]);
@@ -84,5 +88,19 @@ class CompanySubscriptionController extends Controller
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
+    }
+
+    private function canTransition(string $currentStatus, string $newStatus): bool
+    {
+        if ($currentStatus === $newStatus) {
+            return false;
+        }
+
+        return match ($currentStatus) {
+            'trialing' => in_array($newStatus, ['active', 'cancelled', 'expired'], true),
+            'active' => in_array($newStatus, ['suspended', 'cancelled', 'expired'], true),
+            'suspended' => in_array($newStatus, ['active', 'cancelled'], true),
+            default => false,
+        };
     }
 }

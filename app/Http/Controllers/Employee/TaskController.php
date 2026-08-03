@@ -13,6 +13,7 @@ use App\Services\WorkTimerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class TaskController extends Controller
@@ -21,6 +22,8 @@ class TaskController extends Controller
 
     public function index(Request $request): View
     {
+        $this->authorizeFilters($request);
+
         $tasks = Task::with('project')
             ->where('company_id', $this->companyId())
             ->where('assignee_id', auth()->id())
@@ -64,7 +67,18 @@ class TaskController extends Controller
     {
         $this->abortUnlessOwnTask($task);
         $data = $request->validate(['notes' => ['nullable', 'string', 'max:1000']]);
-        $session = $task->workSessions()->where('user_id', auth()->id())->whereNull('ended_at')->firstOrFail();
+        $session = $task->workSessions()
+            ->where('company_id', $this->companyId())
+            ->where('user_id', auth()->id())
+            ->where('status', 'running')
+            ->whereNull('ended_at')
+            ->latest('started_at')
+            ->first();
+
+        if (! $session) {
+            throw ValidationException::withMessages(['timer' => 'No active work session was found for this task.']);
+        }
+
         $timer->stop(auth()->user(), $session, $data['notes'] ?? null);
         $logger->record('timer_stopped', 'Work timer stopped.', auth()->user(), $session, $this->companyId(), request: $request);
 
@@ -142,8 +156,19 @@ class TaskController extends Controller
 
     public function download(WorkFile $file)
     {
-        abort_unless($file->company_id === $this->companyId() && ($file->uploaded_by === auth()->id() || ($file->task_id && Task::whereKey($file->task_id)->where('assignee_id', auth()->id())->exists())), 403);
+        abort_unless($file->company_id === $this->companyId() && ($file->uploaded_by === auth()->id() || ($file->task_id && Task::where('company_id', $this->companyId())->whereKey($file->task_id)->where('assignee_id', auth()->id())->exists())), 403);
+        abort_unless(Storage::disk('public')->exists($file->path), 404);
 
         return Storage::disk('public')->download($file->path, $file->original_name);
+    }
+
+    private function authorizeFilters(Request $request): void
+    {
+        if ($request->filled('project_id')) {
+            abort_unless(Project::where('company_id', $this->companyId())
+                ->whereKey($request->integer('project_id'))
+                ->whereHas('tasks', fn ($query) => $query->where('assignee_id', auth()->id()))
+                ->exists(), 403);
+        }
     }
 }

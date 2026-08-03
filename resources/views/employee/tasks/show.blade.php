@@ -30,14 +30,22 @@
         <div class="content-card-header"><h2>Actions</h2></div>
         <div class="d-flex flex-wrap gap-2 mb-3">
             @if(! $activeTimer && ! in_array($task->status, ['completed', 'cancelled']))
-                <form method="POST" action="{{ route('employee.tasks.start', $task) }}">@csrf<button class="btn btn-primary"><i class="fa-solid fa-play"></i>Start Work</button></form>
+                <form method="POST" action="{{ route('employee.tasks.start', $task) }}" data-confirm="Start working on this task?" data-loading-form>@csrf<button class="btn btn-primary" type="submit" data-loading-text="Starting..."><i class="fa-solid fa-play"></i>Start Work</button></form>
+            @elseif($activeTimer && $activeTimer->task_id !== $task->id)
+                <div class="alert alert-warning w-100 mb-0">
+                    You already have an active timer for another task: <strong>{{ $activeTimer->task?->title ?? 'General work' }}</strong>.
+                    @if($activeTimer->task)
+                        <a href="{{ route('employee.tasks.show', $activeTimer->task) }}">Open active task</a>
+                    @endif
+                </div>
+                <button class="btn btn-outline-primary" type="button" disabled><i class="fa-solid fa-play"></i>Start Work</button>
             @endif
             @if($activeTimer && $activeTimer->task_id === $task->id)
-                <form method="POST" action="{{ route('employee.tasks.stop', $task) }}" class="w-100" data-loading-form>
+                <form method="POST" action="{{ route('employee.tasks.stop', $task) }}" class="w-100" data-confirm="Stop the current work session?" data-loading-form>
                     @csrf
                     <label class="form-label">Work note</label>
                     <textarea class="form-control mb-2" name="notes" rows="2" placeholder="Short note about this session"></textarea>
-                    <button class="btn btn-outline-danger"><i class="fa-solid fa-stop"></i>Stop Work</button>
+                    <button class="btn btn-outline-danger" type="submit" data-loading-text="Stopping..."><i class="fa-solid fa-stop"></i>Stop Work</button>
                 </form>
             @endif
         </div>

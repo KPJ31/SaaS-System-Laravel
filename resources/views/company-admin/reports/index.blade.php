@@ -26,6 +26,8 @@
         'invoices' => ['Invoice Report', 'Invoice totals and payment status.', 'fa-file-invoice-dollar'],
         'revenue' => ['Revenue Report', 'Client project revenue records.', 'fa-money-bill-trend-up'],
         'leave' => ['Leave Report', 'Employee leave requests and review status.', 'fa-calendar-check'],
+        'attendance' => ['Attendance Report', 'Employee attendance, late arrivals and early departures.', 'fa-calendar-days'],
+        'activity-logs' => ['Activity Log Report', 'Company activity records and tracked actions.', 'fa-clipboard-list'],
         'feedback' => ['Feedback Report', 'Client ratings and feedback status.', 'fa-star'],
     ];
 @endphp
@@ -52,15 +54,38 @@
                 </thead>
                 <tbody>
                     @foreach($reports as $key => [$label, $description, $icon])
+                        @if(auth()->user()->role === 'employee')
+                            @php
+                                $requiredPermission = [
+                                    'employees' => 'employees.view',
+                                    'employee-performance' => 'employees.view',
+                                    'projects' => 'projects.view',
+                                    'project-progress' => 'projects.view',
+                                    'project-requests' => 'project-requests.view',
+                                    'tasks' => 'tasks.view',
+                                    'overdue-tasks' => 'tasks.view',
+                                    'work-hours' => 'work-sessions.view-all',
+                                    'clients' => 'clients.view',
+                                    'payments' => 'payments.view',
+                                    'revenue' => 'payments.view',
+                                    'invoices' => 'invoices.view',
+                                    'feedback' => 'feedback.view',
+                                    'leave' => 'leave-requests.view-all',
+                                    'attendance' => 'attendance.view-all',
+                                    'activity-logs' => 'activity-logs.view',
+                                ][$key] ?? null;
+                            @endphp
+                            @continue($requiredPermission && ! auth()->user()->can($requiredPermission))
+                        @endif
                         <tr>
                             <td><i class="fa-solid {{ $icon }} me-2 text-primary"></i>{{ $label }}</td>
                             <td>{{ $description }}</td>
                             <td>
                                 <div class="table-actions">
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.show', $key) }}"><i class="fa-regular fa-eye"></i>View</a>
+                                    <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.show', array_merge(['report' => $key], request()->query())) }}"><i class="fa-regular fa-eye"></i>View</a>
                                     @can('reports.export')
-                                        <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.export', $key) }}"><i class="fa-solid fa-file-csv"></i>CSV</a>
-                                        <a class="btn btn-sm btn-primary" href="{{ route($reportRoutePrefix.'.pdf', $key) }}"><i class="fa-solid fa-file-pdf"></i>PDF</a>
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.export', array_merge(['report' => $key], request()->query())) }}"><i class="fa-solid fa-file-csv"></i>CSV</a>
+                                        <a class="btn btn-sm btn-primary" href="{{ route($reportRoutePrefix.'.pdf', array_merge(['report' => $key], request()->query())) }}"><i class="fa-solid fa-file-pdf"></i>PDF</a>
                                     @endcan
                                 </div>
                             </td>

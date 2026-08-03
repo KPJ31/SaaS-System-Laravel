@@ -17,6 +17,8 @@ class DocumentController extends Controller
     public function index(Request $request): View
     {
         $taskIds = Task::where('company_id', $this->companyId())->where('assignee_id', auth()->id())->pluck('id');
+        $this->authorizeFilters($request, $taskIds);
+
         $files = WorkFile::with(['project', 'task', 'uploader'])
             ->where('company_id', $this->companyId())
             ->where(fn ($query) => $query->where('uploaded_by', auth()->id())->orWhereIn('task_id', $taskIds))
@@ -33,5 +35,19 @@ class DocumentController extends Controller
             'projects' => Project::where('company_id', $this->companyId())->whereHas('tasks', fn ($query) => $query->where('assignee_id', auth()->id()))->orderBy('name')->get(),
             'tasks' => Task::where('company_id', $this->companyId())->where('assignee_id', auth()->id())->orderBy('title')->get(),
         ]);
+    }
+
+    private function authorizeFilters(Request $request, $taskIds): void
+    {
+        if ($request->filled('project_id')) {
+            abort_unless(Project::where('company_id', $this->companyId())
+                ->whereKey($request->integer('project_id'))
+                ->whereHas('tasks', fn ($query) => $query->where('assignee_id', auth()->id()))
+                ->exists(), 403);
+        }
+
+        if ($request->filled('task_id')) {
+            abort_unless($taskIds->contains((int) $request->integer('task_id')), 403);
+        }
     }
 }

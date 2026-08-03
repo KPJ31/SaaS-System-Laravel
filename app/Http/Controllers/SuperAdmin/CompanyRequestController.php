@@ -15,6 +15,7 @@ use App\Notifications\CompanyRegistrationApproved;
 use App\Notifications\CompanyRegistrationRejected;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -39,7 +40,8 @@ class CompanyRequestController extends Controller
             return back()->with('error', 'Only pending requests can be approved.');
         }
 
-        DB::transaction(function () use ($companyRequest): void {
+        $mailWarning = false;
+        [$admin, $companyName] = DB::transaction(function () use ($companyRequest): array {
             $company = Company::create([
                 'name' => $companyRequest->company_name,
                 'slug' => Str::slug($companyRequest->company_name).'-'.Str::lower(Str::random(5)),
@@ -90,10 +92,25 @@ class CompanyRequestController extends Controller
                 'metadata' => ['subscription_plan' => $plan->name],
             ]);
 
-            $admin->notify(new CompanyRegistrationApproved($company->name, $admin->username));
+            return [$admin, $company->name];
         });
 
-        return redirect()->route('super-admin.company-requests.index')->with('success', 'Company request approved successfully.');
+        try {
+            $admin->notify(new CompanyRegistrationApproved($companyName, $admin->username));
+        } catch (\Throwable $exception) {
+            $mailWarning = true;
+            Log::warning('Company approval email failed.', [
+                'company_registration_request_id' => $companyRequest->id,
+                'admin_email' => $admin->email,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+
+        return redirect()
+            ->route('super-admin.company-requests.index')
+            ->with('success', $mailWarning
+                ? 'Company request approved successfully, but the approval email could not be sent.'
+                : 'Company request approved successfully.');
     }
 
     private function defaultPlan(): SubscriptionPlan
@@ -137,11 +154,26 @@ class CompanyRequestController extends Controller
                 'auditable_id' => $companyRequest->id,
                 'description' => 'Rejected company registration for '.$companyRequest->company_name,
             ]);
-
-            Notification::route('mail', $companyRequest->admin_email)
-                ->notify(new CompanyRegistrationRejected($companyRequest->company_name, $companyRequest->rejection_reason));
         });
 
-        return redirect()->route('super-admin.company-requests.index')->with('success', 'Company request rejected.');
+        $mailWarning = false;
+
+        try {
+            Notification::route('mail', $companyRequest->admin_email)
+                ->notify(new CompanyRegistrationRejected($companyRequest->company_name, $companyRequest->rejection_reason));
+        } catch (\Throwable $exception) {
+            $mailWarning = true;
+            Log::warning('Company rejection email failed.', [
+                'company_registration_request_id' => $companyRequest->id,
+                'admin_email' => $companyRequest->admin_email,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+
+        return redirect()
+            ->route('super-admin.company-requests.index')
+            ->with('success', $mailWarning
+                ? 'Company request rejected, but the rejection email could not be sent.'
+                : 'Company request rejected.');
     }
 }

@@ -82,6 +82,16 @@ class PermissionCatalog
                     'work-sessions.export' => 'Export work-session reports',
                 ],
             ],
+            'attendance' => [
+                'title' => 'Attendance',
+                'description' => 'View, export and correct company attendance records.',
+                'permissions' => [
+                    'attendance.view-all' => 'View all attendance records',
+                    'attendance.edit' => 'Correct attendance records',
+                    'attendance.export' => 'Export attendance reports',
+                    'attendance.reports' => 'View attendance reports',
+                ],
+            ],
             'leave-requests' => [
                 'title' => 'Leave Requests',
                 'description' => 'Review leave requests from employees.',
@@ -200,6 +210,9 @@ class PermissionCatalog
             'tasks.update-own',
             'work-sessions.view-own',
             'work-sessions.manage-own',
+            'attendance.view-own',
+            'attendance.check-in',
+            'attendance.check-out',
             'leave-requests.view-own',
             'leave-requests.create',
             'notifications.view-own',

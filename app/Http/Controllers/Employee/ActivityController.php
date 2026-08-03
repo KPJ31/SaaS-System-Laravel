@@ -13,7 +13,9 @@ class ActivityController extends Controller
     {
         $activities = AuditLog::where('company_id', auth()->user()->company_id)
             ->where('user_id', auth()->id())
-            ->when($request->search, fn ($query, $search) => $query->where('description', 'like', "%{$search}%")->orWhere('action', 'like', "%{$search}%"))
+            ->when($request->search, fn ($query, $search) => $query->where(fn ($inner) => $inner
+                ->where('description', 'like', "%{$search}%")
+                ->orWhere('action', 'like', "%{$search}%")))
             ->when($request->module, fn ($query, $module) => $query->where('module', $module))
             ->when($request->date, fn ($query, $date) => $query->whereDate('created_at', $date))
             ->latest()
