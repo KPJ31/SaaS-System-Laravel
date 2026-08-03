@@ -291,6 +291,24 @@ if (window.bootstrap) {
 const hasChartValues = (values) => Array.isArray(values) && values.some((value) => Number(value) > 0);
 const chartFont = { family: 'Poppins', size: 11 };
 const chartGrid = { color: 'rgba(148, 163, 184, 0.15)', drawBorder: false };
+const chartColors = {
+    primary: '#2563EB',
+    info: '#06B6D4',
+    success: '#22C55E',
+    warning: '#F59E0B',
+    danger: '#EF4444',
+    purple: '#8B5CF6',
+    muted: '#64748B',
+};
+const chartPalette = [
+    chartColors.primary,
+    chartColors.info,
+    chartColors.success,
+    chartColors.warning,
+    chartColors.danger,
+    chartColors.purple,
+    chartColors.muted,
+];
 
 function setChartHeight(canvas, height) {
     const wrapper = canvas?.closest('.dashboard-chart-wrapper');
@@ -418,7 +436,7 @@ function horizontalBarOptions() {
 
 if (window.Chart && window.elevanixDashboardCharts) {
     const data = window.elevanixDashboardCharts;
-    const colors = ['#6D28D9', '#8B5CF6', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#2563EB'];
+    const colors = chartPalette;
     const pieOptions = compactDoughnutOptions();
     const lineOptions = compactLineOptions();
     const barOptions = compactBarOptions();
@@ -432,13 +450,13 @@ if (window.Chart && window.elevanixDashboardCharts) {
 
     makeChart('[data-chart="companyGrowth"]', {
         type: 'line',
-        data: { labels: data.labels, datasets: [{ label: 'Companies', data: data.companyGrowth, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
+        data: { labels: data.labels, datasets: [{ label: 'Companies', data: data.companyGrowth, borderColor: chartColors.primary, backgroundColor: 'rgba(37, 99, 235, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
         options: lineOptions,
     });
 
     makeChart('[data-chart="revenueGrowth"]', {
         type: 'bar',
-        data: { labels: data.labels, datasets: [{ label: 'Revenue', data: data.revenueGrowth, backgroundColor: '#8B5CF6', borderRadius: 6, borderSkipped: false, maxBarThickness: 32, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+        data: { labels: data.labels, datasets: [{ label: 'Revenue', data: data.revenueGrowth, backgroundColor: chartColors.purple, borderRadius: 6, borderSkipped: false, maxBarThickness: 32, categoryPercentage: 0.7, barPercentage: 0.75 }] },
         options: barOptions,
     });
 
@@ -467,14 +485,14 @@ if (window.Chart && window.elevanixDashboardCharts) {
 
     makeChart('[data-chart="platformUserGrowth"]', {
         type: 'line',
-        data: { labels: data.labels, datasets: [{ label: 'Users', data: data.userGrowth, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
+        data: { labels: data.labels, datasets: [{ label: 'Users', data: data.userGrowth, borderColor: chartColors.primary, backgroundColor: 'rgba(37, 99, 235, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
         options: lineOptions,
     });
 }
 
 if (window.Chart && window.elevanixCompanyCharts) {
     const data = window.elevanixCompanyCharts;
-    const colors = ['#6D28D9', '#8B5CF6', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6'];
+    const colors = chartPalette;
     const pieOptions = compactDoughnutOptions();
     const employeeHoursOptions = horizontalBarOptions();
 
@@ -500,7 +518,7 @@ if (window.Chart && window.elevanixCompanyCharts) {
         setChartHeight(employeeHours, Math.max(260, Math.min(employeeCount * 42, 420)));
         new Chart(employeeHours, {
             type: 'bar',
-            data: { labels: data.employeeHoursLabels, datasets: [{ label: 'Hours', data: data.employeeHoursValues, backgroundColor: '#6D28D9', borderRadius: 6, borderSkipped: false, maxBarThickness: 28, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+            data: { labels: data.employeeHoursLabels, datasets: [{ label: 'Hours', data: data.employeeHoursValues, backgroundColor: chartColors.primary, borderRadius: 6, borderSkipped: false, maxBarThickness: 28, categoryPercentage: 0.7, barPercentage: 0.75 }] },
             options: employeeHoursOptions,
         });
     }
@@ -528,7 +546,7 @@ document.querySelectorAll('[data-active-timer]').forEach((timer) => {
 
 if (window.Chart && window.elevanixEmployeeCharts) {
     const data = window.elevanixEmployeeCharts;
-    const colors = ['#6D28D9', '#8B5CF6', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6'];
+    const colors = chartPalette;
     const pieOptions = compactDoughnutOptions();
     const barOptions = compactBarOptions();
 
@@ -536,7 +554,7 @@ if (window.Chart && window.elevanixEmployeeCharts) {
     if (weekly) {
         new Chart(weekly, {
             type: 'bar',
-            data: { labels: data.weeklyLabels, datasets: [{ label: 'Hours', data: data.weeklyHours, backgroundColor: '#6D28D9', borderRadius: 6, borderSkipped: false, maxBarThickness: 28, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+            data: { labels: data.weeklyLabels, datasets: [{ label: 'Hours', data: data.weeklyHours, backgroundColor: chartColors.primary, borderRadius: 6, borderSkipped: false, maxBarThickness: 28, categoryPercentage: 0.7, barPercentage: 0.75 }] },
             options: barOptions,
         });
     }
@@ -556,8 +574,43 @@ if (window.Chart && window.elevanixEmployeePerformance) {
     if (canvas) {
         new Chart(canvas, {
             type: 'line',
-            data: { labels: window.elevanixEmployeePerformance.labels, datasets: [{ label: 'Completed tasks', data: window.elevanixEmployeePerformance.values, borderColor: '#6D28D9', backgroundColor: 'rgba(109, 40, 217, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
+            data: { labels: window.elevanixEmployeePerformance.labels, datasets: [{ label: 'Completed tasks', data: window.elevanixEmployeePerformance.values, borderColor: chartColors.primary, backgroundColor: 'rgba(37, 99, 235, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
             options: compactLineOptions(),
         });
     }
+}
+
+if (window.Chart && window.elevanixRevenueCharts) {
+    const data = window.elevanixRevenueCharts;
+
+    const chart = (selector, config) => {
+        const canvas = document.querySelector(selector);
+        if (canvas) {
+            new Chart(canvas, config);
+        }
+    };
+
+    chart('[data-chart="revenueMonthlyTrend"]', {
+        type: 'line',
+        data: { labels: data.monthlyLabels, datasets: [{ label: 'Revenue', data: data.monthlyValues, borderColor: chartColors.primary, backgroundColor: 'rgba(37, 99, 235, 0.10)', tension: 0.35, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, fill: true }] },
+        options: compactLineOptions(),
+    });
+
+    chart('[data-chart="revenueCompany"]', {
+        type: 'bar',
+        data: { labels: data.companyLabels, datasets: [{ label: 'Revenue', data: data.companyValues, backgroundColor: chartColors.primary, borderRadius: 6, borderSkipped: false, maxBarThickness: 30, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+        options: compactBarOptions(),
+    });
+
+    chart('[data-chart="revenuePlan"]', {
+        type: 'bar',
+        data: { labels: data.planLabels, datasets: [{ label: 'Revenue', data: data.planValues, backgroundColor: chartColors.info, borderRadius: 6, borderSkipped: false, maxBarThickness: 30, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+        options: compactBarOptions(),
+    });
+
+    chart('[data-chart="revenueStatus"]', {
+        type: 'doughnut',
+        data: compactDoughnutData(data.statusLabels, data.statusValues, chartPalette),
+        options: compactDoughnutOptions(),
+    });
 }

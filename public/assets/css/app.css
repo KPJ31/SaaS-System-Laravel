@@ -27,7 +27,7 @@ a:hover {
 }
 
 :focus-visible {
-    outline: 3px solid rgba(109, 40, 217, 0.25);
+    outline: 3px solid rgba(37, 99, 235, 0.15);
     outline-offset: 3px;
 }
 
@@ -58,7 +58,7 @@ img {
 .btn-primary {
     border-color: #6d28d9;
     background: #6d28d9;
-    box-shadow: 0 12px 24px rgba(109, 40, 217, 0.18);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
 }
 
 .btn-primary:hover,
@@ -106,7 +106,7 @@ img {
 .form-select:focus,
 .form-check-input:focus {
     border-color: #6d28d9;
-    box-shadow: 0 0 0 0.22rem rgba(109, 40, 217, 0.14);
+    box-shadow: 0 0 0 0.22rem rgba(37, 99, 235, 0.15);
 }
 
 .form-label {

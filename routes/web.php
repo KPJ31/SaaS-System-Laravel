@@ -46,6 +46,7 @@ use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardCo
 use App\Http\Controllers\SuperAdmin\NotificationController;
 use App\Http\Controllers\SuperAdmin\PaymentController;
 use App\Http\Controllers\SuperAdmin\ProfileController;
+use App\Http\Controllers\SuperAdmin\RevenueController;
 use App\Http\Controllers\SuperAdmin\ReportController;
 use App\Http\Controllers\SuperAdmin\SettingController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPlanController;
@@ -109,6 +110,10 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->name('su
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{payment}/{status}', [PaymentController::class, 'updateStatus'])->name('payments.status');
+
+    Route::get('/revenue/export/csv', [RevenueController::class, 'exportCsv'])->name('revenue.export.csv');
+    Route::get('/revenue/export/pdf', [RevenueController::class, 'exportPdf'])->name('revenue.export.pdf');
+    Route::get('/revenue', [RevenueController::class, 'index'])->name('revenue.index');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/{report}', [ReportController::class, 'export'])->name('reports.export');

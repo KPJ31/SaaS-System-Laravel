@@ -1,6 +1,6 @@
 @php
     $class = match ($status) {
-        'active', 'approved', 'received', 'done', 'completed', 'paid', 'trialing', 'present' => 'success',
+        'active', 'approved', 'verified', 'received', 'done', 'completed', 'paid', 'trialing', 'present' => 'success',
         'pending', 'planning', 'todo', 'draft', 'unpaid', 'paused', 'late', 'not_checked_in' => 'warning',
         'suspended', 'rejected', 'overdue', 'cancelled', 'inactive', 'expired' => 'danger',
         'blocked', 'absent' => 'danger',

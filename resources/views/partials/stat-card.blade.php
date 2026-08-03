@@ -1,5 +1,5 @@
 @php
-    $tone = $tone ?? 'purple';
+    $tone = $tone ?? 'primary';
 @endphp
 
 <article class="stat-card">

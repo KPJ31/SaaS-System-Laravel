@@ -59,8 +59,8 @@ class DashboardNavigation
                 self::item('Platform Users', 'fa-users', 'super-admin.users.index', 'super-admin.users.*'),
             ]),
             self::group('Finance', [
-                self::item('Revenue', 'fa-money-bill-wave', 'super-admin.payments.index', ['super-admin.payments.*'], null, [
-                    self::item('Revenue Overview', 'fa-chart-line', 'super-admin.reports.show', 'super-admin.reports.show', null, [], ['report' => 'revenue']),
+                self::item('Revenue', 'fa-money-bill-wave', 'super-admin.payments.index', ['super-admin.payments.*', 'super-admin.revenue.*'], null, [
+                    self::item('Revenue Overview', 'fa-chart-line', 'super-admin.revenue.index', 'super-admin.revenue.*'),
                     self::item('Platform Payments', 'fa-money-bill-wave', 'super-admin.payments.index', 'super-admin.payments.*'),
                 ]),
             ]),
@@ -245,7 +245,7 @@ class DashboardNavigation
                     break;
                 }
             }
-        } elseif ($isActive && $params === [] && request()->query() !== [] && str_ends_with($route, '.index')) {
+        } elseif ($isActive && $params === [] && request()->query() !== [] && str_ends_with($route, '.index') && $route !== 'super-admin.revenue.index') {
             $isActive = false;
         }
 
