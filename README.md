@@ -75,11 +75,23 @@ composer run dev
 
 After running the seeders:
 
-- Super Admin: `superadmin` or `superadmin@elevanix.test` / `Password@123`
-- Company Admin: `novastack_admin` or `admin@novastack.test` / `Password@123`
-- Company Admin: `brightforge_admin` or `admin@brightforge.test` / `Password@123`
-- Employee: `maya` or `employee1@elevanix.test` / `Password@123`
-- Employee: `arun` or `employee2@elevanix.test` / `Password@123`
+All seeded demo login accounts use the password `Password@123`.
+
+| Role | Name | Company | Username | Email | Status |
+| --- | --- | --- | --- | --- | --- |
+| Super Admin | Elevanix Super Admin | Platform | `superadmin` | `superadmin@elevanix.test` | `active` |
+| Company Admin | NovaStack Software Admin | NovaStack Software | `novastack_admin` | `admin@novastack.test` | `active` |
+| Company Admin | BrightForge Labs Admin | BrightForge Labs | `brightforge_admin` | `admin@brightforge.test` | `active` |
+| Employee | Maya Fernando | NovaStack Software | `maya` | `employee1@elevanix.test` | `active` |
+| Employee | Arun Silva | BrightForge Labs | `arun` | `employee2@elevanix.test` | `active` |
+
+Seeded pending registration request:
+
+| Company | Admin Name | Username | Email | Password | Status |
+| --- | --- | --- | --- | --- | --- |
+| Pending Studio | Pending Admin | `pending_admin` | `admin@pendingstudio.test` | `Password@123` | `pending` |
+
+The pending registration request becomes a company admin login only after Super Admin approval.
 
 ## User Roles
 
