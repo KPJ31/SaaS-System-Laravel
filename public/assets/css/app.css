@@ -1146,21 +1146,76 @@ body.sidebar-open {
     color: #0f172a;
 }
 
-.pagination {
-    margin: 18px 0 0;
-    gap: 5px;
+.dashboard-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
 }
 
-.page-link {
-    border-color: #dbe2ea;
+.dashboard-pagination-summary {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.dashboard-pagination-summary span {
+    color: #0f172a;
+    font-weight: 800;
+}
+
+.dashboard-pagination-list {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    margin: 0;
+}
+
+.dashboard-pagination-list .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid #dbe2ea;
     border-radius: 8px;
     color: #3651d4;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: none;
 }
 
-.active > .page-link,
-.page-link.active {
+.dashboard-pagination-list .page-link:hover,
+.dashboard-pagination-list .page-link:focus {
+    border-color: #3651d4;
+    background: #eef2ff;
+    color: #273bb7;
+}
+
+.dashboard-pagination-list .active > .page-link,
+.dashboard-pagination-list .page-link.active {
     border-color: #3651d4;
     background: #3651d4;
+    color: #ffffff;
+}
+
+.dashboard-pagination-list .disabled > .page-link,
+.dashboard-pagination-list .page-link.disabled {
+    border-color: #e5e7eb;
+    background: #f8fafc;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.dashboard-pagination-ellipsis {
+    min-width: 30px;
 }
 
 /* Landing */
@@ -2253,6 +2308,15 @@ body.sidebar-open {
         grid-template-columns: 1fr;
     }
 
+    .dashboard-pagination {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .dashboard-pagination-list {
+        justify-content: flex-start;
+    }
+
     .auth-card,
     .register-card,
     .submitted-card {
@@ -2314,6 +2378,13 @@ body.sidebar-open {
     .chart-pie-wrapper.chart-pie-small {
         max-width: 180px;
         height: 180px;
+    }
+
+    .dashboard-pagination-list .page-link {
+        min-width: 34px;
+        height: 34px;
+        padding: 0 10px;
+        font-size: 12px;
     }
 }
 

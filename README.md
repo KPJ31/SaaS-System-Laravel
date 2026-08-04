@@ -129,6 +129,7 @@ Public and Auth:
 - Reset password
 - POST-only logout
 - Role-based dashboard redirect
+- Shared responsive dashboard pagination UI for paginated lists
 
 Super Admin:
 
@@ -367,8 +368,8 @@ php artisan test
 
 Current verified result:
 
-- 53 tests passed
-- 135 assertions passed
+- 128 tests passed
+- 372 assertions passed
 
 The test environment uses in-memory SQLite from `phpunit.xml`.
 
