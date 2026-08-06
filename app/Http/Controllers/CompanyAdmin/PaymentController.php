@@ -56,21 +56,21 @@ class PaymentController extends Controller
 
     public function show(Payment $payment): View
     {
-        $this->abortUnlessCompanyRecord($payment);
+        $this->authorizeClientProjectPayment($payment);
 
         return view('company-admin.payments.show', ['payment' => $payment->load(['client', 'project', 'verifier'])]);
     }
 
     public function edit(Payment $payment): View
     {
-        $this->abortUnlessCompanyRecord($payment);
+        $this->authorizeClientProjectPayment($payment);
 
         return $this->form($payment);
     }
 
     public function update(Request $request, Payment $payment): RedirectResponse
     {
-        $this->abortUnlessCompanyRecord($payment);
+        $this->authorizeClientProjectPayment($payment);
         $data = $this->validated($request);
         $this->validateRelated($data);
         $payment->update($data);
@@ -80,7 +80,7 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment): RedirectResponse
     {
-        $this->abortUnlessCompanyRecord($payment);
+        $this->authorizeClientProjectPayment($payment);
         if (! $this->canTransition($payment->status, 'refunded')) {
             return back()->with('error', 'Only paid payments can be marked as refunded.');
         }
@@ -92,7 +92,7 @@ class PaymentController extends Controller
 
     public function verify(Request $request, Payment $payment, AuditLogger $logger): RedirectResponse
     {
-        $this->abortUnlessCompanyRecord($payment);
+        $this->authorizeClientProjectPayment($payment);
         $data = $request->validate(['verification_note' => ['nullable', 'string', 'max:2000']]);
 
         if (! $this->canTransition($payment->status, 'paid')) {
@@ -110,7 +110,7 @@ class PaymentController extends Controller
 
     public function reject(Request $request, Payment $payment, AuditLogger $logger): RedirectResponse
     {
-        $this->abortUnlessCompanyRecord($payment);
+        $this->authorizeClientProjectPayment($payment);
         $data = $request->validate(['verification_note' => ['required', 'string', 'max:2000']]);
 
         if (! $this->canTransition($payment->status, 'rejected')) {
@@ -169,6 +169,12 @@ class PaymentController extends Controller
         if ($request->filled('project_id')) {
             abort_unless(Project::where('company_id', $this->companyId())->whereKey($request->integer('project_id'))->exists(), 403);
         }
+    }
+
+    private function authorizeClientProjectPayment(Payment $payment): void
+    {
+        $this->abortUnlessCompanyRecord($payment);
+        abort_unless($payment->payment_type === 'client_project', 404);
     }
 
     private function canTransition(string $currentStatus, string $newStatus): bool

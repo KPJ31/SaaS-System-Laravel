@@ -23,7 +23,10 @@ class DashboardController extends Controller
         $user = auth()->user();
         $tasksQuery = Task::where('company_id', $user->company_id)->where('assignee_id', $user->id);
         $sessionsQuery = WorkSession::where('company_id', $user->company_id)->where('user_id', $user->id);
-        $projectIds = (clone $tasksQuery)->pluck('project_id')->merge($user->projects()->pluck('projects.id'))->unique();
+        $projectIds = (clone $tasksQuery)
+            ->pluck('project_id')
+            ->merge($user->projects()->where('projects.company_id', $user->company_id)->pluck('projects.id'))
+            ->unique();
         $weeklyLabels = [];
         $weeklyHours = [];
         foreach (CarbonPeriod::create(now()->startOfWeek(), now()->endOfWeek()) as $date) {
@@ -46,8 +49,8 @@ class DashboardController extends Controller
         return view('employee.dashboard', [
             'stats' => [
                 'totalProjects' => $projectIds->count(),
-                'activeProjects' => Project::whereIn('id', $projectIds)->whereIn('status', ['active', 'in_progress', 'testing'])->count(),
-                'completedProjects' => Project::whereIn('id', $projectIds)->where('status', 'completed')->count(),
+                'activeProjects' => Project::where('company_id', $user->company_id)->whereIn('id', $projectIds)->whereIn('status', ['active', 'in_progress', 'testing'])->count(),
+                'completedProjects' => Project::where('company_id', $user->company_id)->whereIn('id', $projectIds)->where('status', 'completed')->count(),
                 'totalTasks' => $totalTasks,
                 'pendingTasks' => (clone $tasksQuery)->whereIn('status', ['todo', 'assigned'])->count(),
                 'inProgressTasks' => (clone $tasksQuery)->where('status', 'in_progress')->count(),
@@ -69,8 +72,8 @@ class DashboardController extends Controller
                 'companyPendingTasks' => $user->can('tasks.view') ? Task::where('company_id', $user->company_id)->whereIn('status', ['todo', 'assigned'])->count() : null,
                 'companyOverdueTasks' => $user->can('tasks.view') ? Task::where('company_id', $user->company_id)->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled'])->count() : null,
                 'companyClients' => $user->can('clients.view') ? Client::where('company_id', $user->company_id)->count() : null,
-                'pendingPayments' => $user->can('payments.view') ? Payment::where('company_id', $user->company_id)->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count() : null,
-                'paidPayments' => $user->can('payments.view') ? Payment::where('company_id', $user->company_id)->whereIn('status', ['paid', 'received', 'verified'])->count() : null,
+                'pendingPayments' => $user->can('payments.view') ? Payment::where('company_id', $user->company_id)->where('payment_type', 'client_project')->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count() : null,
+                'paidPayments' => $user->can('payments.view') ? Payment::where('company_id', $user->company_id)->where('payment_type', 'client_project')->whereIn('status', ['paid', 'received', 'verified'])->count() : null,
             ],
             'tasks' => (clone $tasksQuery)->with('project')->latest()->take(8)->get(),
             'todayTasks' => (clone $tasksQuery)->with('project')->whereDate('due_date', today())->latest()->take(6)->get(),

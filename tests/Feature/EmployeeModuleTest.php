@@ -4,6 +4,7 @@ use App\Models\Attendance;
 use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\LeaveRequest;
+use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
@@ -103,6 +104,25 @@ test('employee cannot access admin areas', function () {
 
     $this->actingAs($employee)->get(route('super-admin.dashboard'))->assertForbidden();
     $this->actingAs($employee)->get(route('company-admin.dashboard'))->assertForbidden();
+});
+
+test('employee dashboard project stats ignore cross-company pivot assignments', function () {
+    $employee = employeeTestUser();
+    $otherCompany = employeeTestCompany();
+    $externalProject = Project::create([
+        'company_id' => $otherCompany->id,
+        'name' => 'External Pivot Project',
+        'status' => 'active',
+        'priority' => 'medium',
+    ]);
+
+    $externalProject->users()->attach($employee->id);
+
+    $this->actingAs($employee)
+        ->get(route('employee.dashboard'))
+        ->assertOk()
+        ->assertSeeInOrder(['Projects', '<strong>0</strong>'], false)
+        ->assertSeeInOrder(['Active Projects', '<strong>0</strong>'], false);
 });
 
 test('employee only sees own tasks', function () {
@@ -442,4 +462,53 @@ test('suspended employee cannot access dashboard', function () {
     $employee = employeeTestUser(null, ['status' => 'suspended']);
 
     $this->actingAs($employee)->get(route('employee.dashboard'))->assertForbidden();
+});
+
+test('delegated employee dashboard payment stats exclude platform subscription payments', function () {
+    $this->seed(\Database\Seeders\PermissionSeeder::class);
+
+    $employee = employeeTestUser();
+    $employee->syncDirectPermissions(['payments.view']);
+
+    Payment::create([
+        'company_id' => $employee->company_id,
+        'transaction_reference' => 'CLIENT-PENDING',
+        'payment_type' => 'client_project',
+        'amount' => 250,
+        'method' => 'bank_transfer',
+        'status' => 'proof_submitted',
+    ]);
+
+    Payment::create([
+        'company_id' => $employee->company_id,
+        'transaction_reference' => 'CLIENT-PAID',
+        'payment_type' => 'client_project',
+        'amount' => 400,
+        'method' => 'bank_transfer',
+        'status' => 'paid',
+    ]);
+
+    Payment::create([
+        'company_id' => $employee->company_id,
+        'transaction_reference' => 'SUB-PENDING',
+        'payment_type' => 'subscription',
+        'amount' => 49,
+        'method' => 'bank_transfer',
+        'status' => 'submitted',
+    ]);
+
+    Payment::create([
+        'company_id' => $employee->company_id,
+        'transaction_reference' => 'SUB-PAID',
+        'payment_type' => 'subscription',
+        'amount' => 99,
+        'method' => 'bank_transfer',
+        'status' => 'verified',
+    ]);
+
+    $this->actingAs($employee->fresh())
+        ->get(route('employee.dashboard'))
+        ->assertOk()
+        ->assertSeeInOrder(['Pending Payments', '<strong>1</strong>'], false)
+        ->assertSeeInOrder(['Paid Payments', '<strong>1</strong>'], false);
 });

@@ -18,8 +18,10 @@ class PaymentController extends Controller
     {
         $payments = Payment::with(['company', 'subscriptionPlan', 'verifier'])
             ->when($request->filled('search'), function ($query) use ($request): void {
-                $query->where('transaction_reference', 'like', '%'.$request->search.'%')
-                    ->orWhereHas('company', fn ($company) => $company->where('name', 'like', '%'.$request->search.'%'));
+                $query->where(function ($searchQuery) use ($request): void {
+                    $searchQuery->where('transaction_reference', 'like', '%'.$request->search.'%')
+                        ->orWhereHas('company', fn ($company) => $company->where('name', 'like', '%'.$request->search.'%'));
+                });
             })
             ->when($request->filled('company'), fn ($query) => $query->where('company_id', $request->company))
             ->when($request->filled('plan'), fn ($query) => $query->where('subscription_plan_id', $request->plan))
@@ -46,6 +48,8 @@ class PaymentController extends Controller
 
     public function show(Payment $payment): View
     {
+        $this->abortIfNotSubscriptionPayment($payment);
+
         return view('super-admin.payments.show', [
             'payment' => $payment->load(['company', 'subscription', 'subscriptionPlan', 'project', 'client', 'verifier']),
         ]);
@@ -53,6 +57,8 @@ class PaymentController extends Controller
 
     public function updateStatus(Request $request, Payment $payment, string $status): RedirectResponse
     {
+        $this->abortIfNotSubscriptionPayment($payment);
+
         abort_unless(in_array($status, ['verified', 'rejected', 'failed', 'refunded'], true), 404);
 
         if (! $this->canTransition($payment->status, $status)) {
@@ -113,5 +119,10 @@ class PaymentController extends Controller
             'verified', 'received', 'paid' => $newStatus === 'refunded',
             default => false,
         };
+    }
+
+    private function abortIfNotSubscriptionPayment(Payment $payment): void
+    {
+        abort_unless($payment->payment_type === 'subscription' || $payment->payment_type === null, 404);
     }
 }
