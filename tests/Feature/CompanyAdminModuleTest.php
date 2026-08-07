@@ -1110,6 +1110,18 @@ test('company admin can preview report before export', function () {
         ->assertSee('Download PDF');
 });
 
+test('company admin report links ignore stale report query values', function () {
+    $admin = companyAdminTestAdmin();
+
+    $this->actingAs($admin)
+        ->get(route('company-admin.reports.index', ['report' => 'missing-report', 'date_from' => now()->startOfMonth()->toDateString(), 'date_to' => now()->toDateString()]))
+        ->assertOk()
+        ->assertSee(route('company-admin.reports.show', ['report' => 'projects', 'date_from' => now()->startOfMonth()->toDateString(), 'date_to' => now()->toDateString()]))
+        ->assertSee(route('company-admin.reports.export', ['report' => 'projects', 'date_from' => now()->startOfMonth()->toDateString(), 'date_to' => now()->toDateString()]))
+        ->assertSee(route('company-admin.reports.pdf', ['report' => 'projects', 'date_from' => now()->startOfMonth()->toDateString(), 'date_to' => now()->toDateString()]))
+        ->assertDontSee('/company-admin/reports/missing-report', false);
+});
+
 test('company admin can download report pdf', function () {
     $admin = companyAdminTestAdmin();
     User::factory()->create([

@@ -23,6 +23,7 @@
 </div>
 
 @php
+    $reportQuery = request()->except('report');
     $reports = [
         'companies' => ['Company Registration Report', 'Companies, emails, status and registration date.', 'fa-building'],
         'subscriptions' => ['Subscription Report', 'Company plans, status and subscription dates.', 'fa-repeat'],
@@ -62,13 +63,13 @@
                         <td>{{ $description }}</td>
                         <td>
                             <div class="table-actions">
-                                <a class="btn btn-sm btn-outline-primary" href="{{ route('super-admin.reports.show', array_merge(['report' => $key], request()->query())) }}">
+                                <a class="btn btn-sm btn-outline-primary" href="{{ route('super-admin.reports.show', array_merge(['report' => $key], $reportQuery)) }}">
                                     <i class="fa-regular fa-eye" aria-hidden="true"></i> View
                                 </a>
-                                <a class="btn btn-sm btn-outline-primary" href="{{ route('super-admin.reports.export', array_merge(['report' => $key], request()->query())) }}">
+                                <a class="btn btn-sm btn-outline-primary" href="{{ route('super-admin.reports.export', array_merge(['report' => $key], $reportQuery)) }}">
                                     <i class="fa-solid fa-file-csv" aria-hidden="true"></i> CSV
                                 </a>
-                                <a class="btn btn-sm btn-primary" href="{{ route('super-admin.reports.pdf', array_merge(['report' => $key], request()->query())) }}">
+                                <a class="btn btn-sm btn-primary" href="{{ route('super-admin.reports.pdf', array_merge(['report' => $key], $reportQuery)) }}">
                                     <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> PDF
                                 </a>
                             </div>

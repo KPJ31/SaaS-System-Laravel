@@ -410,6 +410,18 @@ test('super admin can view report before download', function () {
         ->assertSee('Download PDF');
 });
 
+test('super admin report links ignore stale report query values', function () {
+    $superAdmin = makeUser(['email' => 'report-link-admin@example.test', 'username' => 'reportlinkadmin']);
+
+    $this->actingAs($superAdmin)
+        ->get(route('super-admin.reports.index', ['report' => 'missing-report', 'search' => 'Visible']))
+        ->assertOk()
+        ->assertSee(route('super-admin.reports.show', ['report' => 'companies', 'search' => 'Visible']))
+        ->assertSee(route('super-admin.reports.export', ['report' => 'companies', 'search' => 'Visible']))
+        ->assertSee(route('super-admin.reports.pdf', ['report' => 'companies', 'search' => 'Visible']))
+        ->assertDontSee('/super-admin/reports/missing-report', false);
+});
+
 test('super admin can download report pdf', function () {
     $superAdmin = makeUser(['email' => 'pdf-admin@example.test', 'username' => 'pdfadmin']);
     makeCompany(['name' => 'PDF Company', 'email' => 'pdf-company@example.test']);

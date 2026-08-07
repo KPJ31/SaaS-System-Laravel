@@ -1751,25 +1751,12 @@ body {
 .sidebar-navigation,
 .dashboard-sidebar-menu {
     padding: 4px 10px 16px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+    scrollbar-width: none;
 }
 
 .sidebar-navigation::-webkit-scrollbar,
 .dashboard-sidebar-menu::-webkit-scrollbar {
-    display: block;
-    width: 6px;
-}
-
-.sidebar-navigation::-webkit-scrollbar-track,
-.dashboard-sidebar-menu::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.sidebar-navigation::-webkit-scrollbar-thumb,
-.dashboard-sidebar-menu::-webkit-scrollbar-thumb {
-    border-radius: 999px;
-    background: rgba(148, 163, 184, 0.26);
+    display: none;
 }
 
 .sidebar-link,

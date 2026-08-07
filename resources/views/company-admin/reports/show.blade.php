@@ -4,10 +4,11 @@
 
 @section('content')
 @php
+    $reportQuery = request()->except('report');
     $reportRoutePrefix = auth()->user()->role === 'employee' ? 'employee.reports' : 'company-admin.reports';
     $exportActions = auth()->user()->can('reports.export')
-        ? '<a class="btn btn-outline-primary" href="'.route($reportRoutePrefix.'.export', array_merge(['report' => $report], request()->query())).'"><i class="fa-solid fa-file-csv"></i>Export CSV<span class="visually-hidden"> Download CSV</span></a>'.
-          '<a class="btn btn-primary" href="'.route($reportRoutePrefix.'.pdf', array_merge(['report' => $report], request()->query())).'"><i class="fa-solid fa-file-pdf"></i>Export PDF<span class="visually-hidden"> Download PDF</span></a>'
+        ? '<a class="btn btn-outline-primary" href="'.route($reportRoutePrefix.'.export', array_merge(['report' => $report], $reportQuery)).'"><i class="fa-solid fa-file-csv"></i>Export CSV<span class="visually-hidden"> Download CSV</span></a>'.
+          '<a class="btn btn-primary" href="'.route($reportRoutePrefix.'.pdf', array_merge(['report' => $report], $reportQuery)).'"><i class="fa-solid fa-file-pdf"></i>Export PDF<span class="visually-hidden"> Download PDF</span></a>'
         : '';
 @endphp
 

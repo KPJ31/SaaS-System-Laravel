@@ -21,8 +21,9 @@
 </div>
 
 @php
+    $reportQuery = request()->except('report');
     $reportRoutePrefix = auth()->user()->role === 'employee' ? 'employee.reports' : 'company-admin.reports';
-    $groupedReports = collect($definitions)->groupBy(fn ($definition) => $definition[3]);
+    $groupedReports = collect($definitions)->groupBy(fn ($definition) => $definition[3], true);
 @endphp
 
 <div class="content-grid">
@@ -67,10 +68,10 @@
                         <strong><i class="fa-solid {{ $icon }} me-1 text-primary"></i>{{ $label }}</strong>
                         <span>{{ $description }}</span>
                         <div class="table-actions">
-                            <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.show', array_merge(['report' => $key], request()->query())) }}"><i class="fa-regular fa-eye"></i>View</a>
+                            <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.show', array_merge(['report' => $key], $reportQuery)) }}"><i class="fa-regular fa-eye"></i>View</a>
                             @can('reports.export')
-                                <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.export', array_merge(['report' => $key], request()->query())) }}"><i class="fa-solid fa-file-csv"></i>Export CSV</a>
-                                <a class="btn btn-sm btn-primary" href="{{ route($reportRoutePrefix.'.pdf', array_merge(['report' => $key], request()->query())) }}"><i class="fa-solid fa-file-pdf"></i>Export PDF</a>
+                                <a class="btn btn-sm btn-outline-primary" href="{{ route($reportRoutePrefix.'.export', array_merge(['report' => $key], $reportQuery)) }}"><i class="fa-solid fa-file-csv"></i>Export CSV</a>
+                                <a class="btn btn-sm btn-primary" href="{{ route($reportRoutePrefix.'.pdf', array_merge(['report' => $key], $reportQuery)) }}"><i class="fa-solid fa-file-pdf"></i>Export PDF</a>
                             @endcan
                         </div>
                     </div>

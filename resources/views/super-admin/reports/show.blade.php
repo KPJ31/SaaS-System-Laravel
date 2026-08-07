@@ -3,13 +3,17 @@
 @section('title', $title.' - Elevanix')
 
 @section('content')
+@php
+    $reportQuery = request()->except('report');
+@endphp
+
 @include('partials.page-header', [
     'eyebrow' => 'Report Preview',
     'title' => $title,
     'description' => 'Generated '.$generatedAt->format('M d, Y h:i A').'. Check the data below before downloading.',
     'actions' => new Illuminate\Support\HtmlString(
-        '<a class="btn btn-outline-primary" href="'.route('super-admin.reports.export', array_merge(['report' => $report], request()->query())).'"><i class="fa-solid fa-file-csv"></i> Download CSV</a>'.
-        '<a class="btn btn-primary" href="'.route('super-admin.reports.pdf', array_merge(['report' => $report], request()->query())).'"><i class="fa-solid fa-file-pdf"></i> Download PDF</a>'
+        '<a class="btn btn-outline-primary" href="'.route('super-admin.reports.export', array_merge(['report' => $report], $reportQuery)).'"><i class="fa-solid fa-file-csv"></i> Download CSV</a>'.
+        '<a class="btn btn-primary" href="'.route('super-admin.reports.pdf', array_merge(['report' => $report], $reportQuery)).'"><i class="fa-solid fa-file-pdf"></i> Download PDF</a>'
     ),
 ])
 
