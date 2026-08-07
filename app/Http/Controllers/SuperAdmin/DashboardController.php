@@ -9,6 +9,7 @@ use App\Models\CompanyRegistrationRequest;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Subscription;
+use App\Models\SubscriptionChangeRequest;
 use App\Models\SubscriptionPlan;
 use App\Models\Task;
 use App\Models\User;
@@ -57,10 +58,14 @@ class DashboardController extends Controller
             'monthlyRevenue' => Subscription::where('status', 'active')->sum('monthly_price'),
             'totalRevenue' => Payment::where('payment_type', 'subscription')->whereIn('status', ['verified', 'received', 'paid'])->sum('amount'),
             'pendingSubscriptionPaymentsCount' => Payment::where('payment_type', 'subscription')->whereIn('status', ['pending', 'submitted', 'proof_submitted'])->count(),
+            'pendingPlanChangesCount' => SubscriptionChangeRequest::whereIn('status', ['pending', 'payment_submitted', 'under_review'])->count(),
+            'upgradeRequestsCount' => SubscriptionChangeRequest::where('change_type', 'upgrade')->whereIn('status', SubscriptionChangeRequest::ACTIVE_STATUSES)->count(),
+            'downgradeRequestsCount' => SubscriptionChangeRequest::where('change_type', 'downgrade')->whereIn('status', SubscriptionChangeRequest::ACTIVE_STATUSES)->count(),
             'unreadNotificationsCount' => auth()->user()->unreadNotifications()->count(),
             'recentCompanies' => Company::latest()->take(5)->get(),
             'latestRequests' => CompanyRegistrationRequest::latest()->take(5)->get(),
             'recentPayments' => Payment::with(['company', 'subscriptionPlan'])->where('payment_type', 'subscription')->latest()->take(5)->get(),
+            'recentPlanChanges' => SubscriptionChangeRequest::with(['company', 'requestedPlan'])->latest()->take(5)->get(),
             'recentProjects' => Project::with('company')->latest()->take(5)->get(),
             'latestUsers' => User::with('company')->latest()->take(5)->get(),
             'latestAuditLogs' => AuditLog::with('user')->latest()->take(6)->get(),

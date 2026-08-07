@@ -69,4 +69,9 @@ class Payment extends Model
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
+
+    public function subscriptionChangeRequest()
+    {
+        return $this->hasOne(SubscriptionChangeRequest::class);
+    }
 }

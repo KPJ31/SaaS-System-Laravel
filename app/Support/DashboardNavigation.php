@@ -9,6 +9,7 @@ use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\ProjectRequest;
 use App\Models\Subscription;
+use App\Models\SubscriptionChangeRequest;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkSession;
@@ -38,6 +39,7 @@ class DashboardNavigation
         $pendingPayments = Payment::where('payment_type', 'subscription')
             ->whereIn('status', ['pending', 'requested', 'proof_submitted'])
             ->count();
+        $pendingPlanChanges = SubscriptionChangeRequest::whereIn('status', ['pending', 'payment_submitted', 'under_review'])->count();
 
         return self::cleanGroups([
             self::group('Overview', [
@@ -51,6 +53,7 @@ class DashboardNavigation
                 self::item('Subscriptions', 'fa-credit-card', 'super-admin.subscriptions.index', ['super-admin.subscriptions.*', 'super-admin.subscription-plans.*'], null, [
                     self::item('Subscription Plans', 'fa-layer-group', 'super-admin.subscription-plans.index', 'super-admin.subscription-plans.*'),
                     self::item('Company Subscriptions', 'fa-arrows-rotate', 'super-admin.subscriptions.index', 'super-admin.subscriptions.*'),
+                    self::item('Plan Change Requests', 'fa-code-compare', 'super-admin.subscription-change-requests.index', 'super-admin.subscription-change-requests.*', $pendingPlanChanges),
                     self::item('Expiring Subscriptions', 'fa-calendar-days', 'super-admin.reports.show', 'super-admin.reports.show', $expiringSubscriptions, [], ['report' => 'subscription-expiry']),
                     self::item('Subscription Payments', 'fa-money-check-dollar', 'super-admin.payments.index', 'super-admin.payments.*', $pendingPayments),
                 ]),
@@ -82,15 +85,18 @@ class DashboardNavigation
     {
         $companyId = (int) $user->company_id;
         $counts = self::companyCounts($companyId, $user);
+        $activePlans = \App\Models\SubscriptionPlan::where('status', 'active')->exists();
 
         return self::cleanGroups([
             self::group('Overview', [
                 self::item('Dashboard', 'fa-gauge-high', 'company-admin.dashboard', 'company-admin.dashboard'),
             ]),
             self::group('Organization', [
-                self::item('Company', 'fa-building', 'company-admin.company-profile.show', ['company-admin.company-profile.*', 'company-admin.settings.*'], null, [
+                self::item('Company', 'fa-building', 'company-admin.company-profile.show', ['company-admin.company-profile.*', 'company-admin.settings.*', 'company-admin.subscription.*'], null, [
                     self::item('Company Profile', 'fa-building', 'company-admin.company-profile.show', 'company-admin.company-profile.*'),
                     self::item('Company Settings', 'fa-gear', 'company-admin.settings.index', 'company-admin.settings.*'),
+                    self::item('Subscription Information', 'fa-credit-card', 'company-admin.subscription.index', 'company-admin.subscription.*', $counts['pendingPlanChanges']),
+                    $activePlans ? self::item('Change Plan', 'fa-code-compare', 'company-admin.subscription.index', 'company-admin.subscription.*') : null,
                 ]),
                 self::item('Employees', 'fa-user-tie', 'company-admin.employees.index', ['company-admin.employees.*', 'company-admin.performance.*'], $counts['pendingEmployees'], [
                     self::item('All Employees', 'fa-users', 'company-admin.employees.index', 'company-admin.employees.index'),
@@ -227,6 +233,7 @@ class DashboardNavigation
             'absentToday' => Attendance::where('company_id', $companyId)->whereDate('attendance_date', today())->where('status', 'absent')->count(),
             'pendingLeaveRequests' => LeaveRequest::where('company_id', $companyId)->where('status', 'pending')->count(),
             'pendingPayments' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count(),
+            'pendingPlanChanges' => SubscriptionChangeRequest::where('company_id', $companyId)->whereIn('status', SubscriptionChangeRequest::ACTIVE_STATUSES)->count(),
             'overdueInvoices' => Invoice::where('company_id', $companyId)->where('status', 'overdue')->count(),
             'unreadNotifications' => $user->unreadNotifications()->count(),
         ];

@@ -10,6 +10,7 @@ use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\ProjectRequest;
+use App\Models\SubscriptionChangeRequest;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkSession;
@@ -45,6 +46,8 @@ class DashboardController extends Controller
             'weekWorkMinutes' => WorkSession::where('company_id', $companyId)->whereBetween('started_at', [now()->startOfWeek(), now()->endOfWeek()])->sum('duration_minutes'),
             'pendingLeavesCount' => LeaveRequest::where('company_id', $companyId)->where('status', 'pending')->count(),
             'pendingPaymentsCount' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count(),
+            'pendingPlanChangesCount' => SubscriptionChangeRequest::where('company_id', $companyId)->whereIn('status', SubscriptionChangeRequest::ACTIVE_STATUSES)->count(),
+            'currentSubscription' => auth()->user()->company?->activeSubscription?->load('plan'),
             'paidInvoicesCount' => Invoice::where('company_id', $companyId)->where('status', 'paid')->count(),
             'monthlyRevenue' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->whereIn('status', ['paid', 'received', 'verified'])->whereBetween('created_at', [$monthStart, $monthEnd])->sum('amount'),
             'totalRevenue' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->whereIn('status', ['paid', 'received', 'verified'])->sum('amount'),

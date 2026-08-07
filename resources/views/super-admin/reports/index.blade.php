@@ -13,7 +13,10 @@
     @include('partials.stat-card', ['label' => 'Companies', 'value' => $companyCount, 'icon' => 'fa-building'])
     @include('partials.stat-card', ['label' => 'Active / Suspended', 'value' => $activeCompanyCount.' / '.$suspendedCompanyCount, 'icon' => 'fa-building-circle-check'])
     @include('partials.stat-card', ['label' => 'Subscriptions', 'value' => $subscriptionCount, 'icon' => 'fa-repeat'])
+    @include('partials.stat-card', ['label' => 'Plan Changes', 'value' => $planChangeCount, 'icon' => 'fa-code-compare'])
+    @include('partials.stat-card', ['label' => 'Pending Changes', 'value' => $pendingPlanChangeCount, 'icon' => 'fa-clock', 'tone' => 'yellow'])
     @include('partials.stat-card', ['label' => 'Revenue', 'value' => '$'.number_format($revenueTotal, 2), 'icon' => 'fa-sack-dollar', 'tone' => 'green'])
+    @include('partials.stat-card', ['label' => 'Change Revenue', 'value' => '$'.number_format($planChangeRevenue, 2), 'icon' => 'fa-money-check-dollar', 'tone' => 'green'])
     @include('partials.stat-card', ['label' => 'Company Users', 'value' => $userCount, 'icon' => 'fa-users'])
     @include('partials.stat-card', ['label' => 'Expiring Soon', 'value' => $expiringSoonCount, 'icon' => 'fa-calendar-days', 'tone' => 'yellow'])
     @include('partials.stat-card', ['label' => 'Audit Logs', 'value' => $auditCount, 'icon' => 'fa-clipboard-list'])
@@ -28,6 +31,7 @@
         'projects' => ['Project Monitoring Report', 'Platform projects by company, status and due date.', 'fa-diagram-project'],
         'tasks' => ['Task Monitoring Report', 'Platform task status and assignment visibility.', 'fa-list-check'],
         'subscription-expiry' => ['Subscription Expiry Report', 'Subscriptions with renewal or expiry warnings.', 'fa-calendar-days'],
+        'subscription-changes' => ['Plan Change Request Report', 'Upgrades, downgrades, statuses and plan-change revenue.', 'fa-code-compare'],
         'audit-logs' => ['Audit Activity Report', 'Recent administrative activity and tracked actions.', 'fa-clipboard-list'],
     ];
 @endphp

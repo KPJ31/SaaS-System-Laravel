@@ -44,4 +44,9 @@ class Subscription extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function changeRequests()
+    {
+        return $this->hasMany(SubscriptionChangeRequest::class, 'current_subscription_id');
+    }
 }

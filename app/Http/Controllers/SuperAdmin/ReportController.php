@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Subscription;
+use App\Models\SubscriptionChangeRequest;
 use App\Models\SubscriptionPlan;
 use App\Models\Task;
 use App\Models\User;
@@ -28,7 +29,10 @@ class ReportController extends Controller
             'activeCompanyCount' => Company::where('status', 'active')->count(),
             'suspendedCompanyCount' => Company::where('status', 'suspended')->count(),
             'subscriptionCount' => Subscription::count(),
+            'planChangeCount' => SubscriptionChangeRequest::count(),
+            'pendingPlanChangeCount' => SubscriptionChangeRequest::whereIn('status', SubscriptionChangeRequest::ACTIVE_STATUSES)->count(),
             'revenueTotal' => Payment::where('payment_type', 'subscription')->whereIn('status', ['verified', 'received', 'paid'])->sum('amount'),
+            'planChangeRevenue' => SubscriptionChangeRequest::where('status', 'completed')->sum('payable_amount'),
             'userCount' => User::count(),
             'expiringSoonCount' => Subscription::whereDate('renews_at', '<=', now()->addDays(30))->whereDate('renews_at', '>=', now())->count(),
             'auditCount' => AuditLog::count(),
@@ -205,6 +209,26 @@ class ReportController extends Controller
                     ];
                 }),
             ],
+            'subscription-changes' => [
+                ['Company', 'Previous Plan', 'Requested Plan', 'Type', 'Billing', 'Amount', 'Status', 'Requested', 'Reviewed'],
+                $this->applyCommonFilters(SubscriptionChangeRequest::with(['company', 'currentPlan', 'requestedPlan']), $request)
+                    ->when($request->filled('company_id'), fn ($query) => $query->where('company_id', $request->integer('company_id')))
+                    ->when($request->filled('plan_id'), fn ($query) => $query->where('requested_plan_id', $request->integer('plan_id')))
+                    ->when($request->filled('change_type'), fn ($query) => $query->where('change_type', $request->string('change_type')->toString()))
+                    ->latest()
+                    ->get()
+                    ->map(fn ($changeRequest) => [
+                        $changeRequest->company?->name ?? '-',
+                        $changeRequest->currentPlan?->name ?? '-',
+                        $changeRequest->requestedPlan?->name ?? '-',
+                        str_replace('_', ' ', $changeRequest->change_type),
+                        ucfirst($changeRequest->billing_cycle),
+                        number_format((float) $changeRequest->payable_amount, 2),
+                        str_replace('_', ' ', $changeRequest->status),
+                        $changeRequest->created_at->format('Y-m-d'),
+                        $changeRequest->reviewed_at?->format('Y-m-d') ?? '-',
+                    ]),
+            ],
         };
 
         return [
@@ -240,7 +264,7 @@ class ReportController extends Controller
 
     private function activeFilters(Request $request): array
     {
-        return collect($request->only(['search', 'date_from', 'date_to', 'status', 'company_id', 'plan_id', 'role']))
+        return collect($request->only(['search', 'date_from', 'date_to', 'status', 'company_id', 'plan_id', 'role', 'change_type']))
             ->filter(fn ($value) => filled($value))
             ->mapWithKeys(fn ($value, $key) => [str_replace('_', ' ', ucfirst($key)) => (string) $value])
             ->all();
@@ -257,6 +281,7 @@ class ReportController extends Controller
             'projects' => 'Project Monitoring Report',
             'tasks' => 'Task Monitoring Report',
             'subscription-expiry' => 'Subscription Expiry Report',
+            'subscription-changes' => 'Plan Change Request Report',
         ];
     }
 

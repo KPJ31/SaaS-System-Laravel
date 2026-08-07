@@ -23,6 +23,8 @@
     @include('partials.stat-card', ['label' => 'Week Hours', 'value' => number_format($weekWorkMinutes / 60, 1), 'icon' => 'fa-calendar-week', 'tone' => 'blue'])
     @include('partials.stat-card', ['label' => 'Monthly Revenue', 'value' => '$'.number_format($monthlyRevenue, 2), 'icon' => 'fa-money-bill-trend-up', 'tone' => 'green'])
     @include('partials.stat-card', ['label' => 'Total Revenue', 'value' => '$'.number_format($totalRevenue, 2), 'icon' => 'fa-sack-dollar', 'tone' => 'green'])
+    @include('partials.stat-card', ['label' => 'Current Plan', 'value' => $currentSubscription?->plan?->name ?? 'None', 'icon' => 'fa-credit-card', 'tone' => 'blue'])
+    @include('partials.stat-card', ['label' => 'Pending Plan Changes', 'value' => $pendingPlanChangesCount, 'icon' => 'fa-code-compare', 'tone' => 'yellow'])
 </div>
 
 <div class="content-card mb-3">
@@ -38,6 +40,7 @@
             <a class="btn btn-outline-primary" href="{{ route('company-admin.projects.create') }}"><i class="fa-solid fa-diagram-project"></i>Create project</a>
             <a class="btn btn-outline-primary" href="{{ route('company-admin.tasks.create') }}"><i class="fa-solid fa-list-check"></i>Create task</a>
             <a class="btn btn-outline-primary" href="{{ route('company-admin.payments.create') }}"><i class="fa-solid fa-credit-card"></i>Payment request</a>
+            <a class="btn btn-outline-primary" href="{{ route('company-admin.subscription.index') }}"><i class="fa-solid fa-code-compare"></i>Change plan</a>
             <a class="btn btn-outline-primary" href="{{ route('company-admin.reports.index') }}"><i class="fa-solid fa-chart-pie"></i>Reports</a>
         </div>
     </div>

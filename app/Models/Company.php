@@ -81,6 +81,11 @@ class Company extends Model
         return $this->hasMany(Subscription::class);
     }
 
+    public function subscriptionChangeRequests(): HasMany
+    {
+        return $this->hasMany(SubscriptionChangeRequest::class);
+    }
+
     public function activeSubscription(): HasOne
     {
         return $this->hasOne(Subscription::class)->whereIn('status', ['trialing', 'active'])->latestOfMany();

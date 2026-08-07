@@ -7,7 +7,7 @@
     'eyebrow' => 'Company Profile',
     'title' => $company->name,
     'description' => 'Manage the public company details your team uses across Elevanix.',
-    'actions' => new \Illuminate\Support\HtmlString('<a class="btn btn-primary" href="'.route('company-admin.company-profile.edit').'"><i class="fa-solid fa-pen"></i>Edit profile</a>'),
+    'actions' => new \Illuminate\Support\HtmlString('<a class="btn btn-primary" href="'.route('company-admin.company-profile.edit').'"><i class="fa-solid fa-pen"></i>Edit profile</a><a class="btn btn-outline-primary" href="'.route('company-admin.subscription.index').'"><i class="fa-solid fa-credit-card"></i>Subscription Information</a>'),
 ])
 
 <section class="content-card">

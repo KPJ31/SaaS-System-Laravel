@@ -29,6 +29,9 @@
     @include('partials.stat-card', ['label' => 'Active Subscriptions', 'value' => $activeSubscriptionsCount, 'icon' => 'fa-repeat', 'tone' => 'blue'])
     @include('partials.stat-card', ['label' => 'Expired Subscriptions', 'value' => $expiredSubscriptionsCount, 'icon' => 'fa-calendar-xmark'])
     @include('partials.stat-card', ['label' => 'Pending Payments', 'value' => $pendingSubscriptionPaymentsCount, 'icon' => 'fa-credit-card', 'tone' => 'yellow'])
+    @include('partials.stat-card', ['label' => 'Pending Plan Changes', 'value' => $pendingPlanChangesCount, 'icon' => 'fa-code-compare', 'tone' => 'yellow'])
+    @include('partials.stat-card', ['label' => 'Upgrade Requests', 'value' => $upgradeRequestsCount, 'icon' => 'fa-arrow-up', 'tone' => 'green'])
+    @include('partials.stat-card', ['label' => 'Downgrade Requests', 'value' => $downgradeRequestsCount, 'icon' => 'fa-arrow-down', 'tone' => 'yellow'])
     @include('partials.stat-card', ['label' => 'Unread Alerts', 'value' => $unreadNotificationsCount, 'icon' => 'fa-bell'])
     @include('partials.stat-card', ['label' => 'Monthly Revenue', 'value' => '$'.number_format($monthlyRevenue, 2), 'icon' => 'fa-chart-line'])
     @include('partials.stat-card', ['label' => 'Total Revenue', 'value' => '$'.number_format($totalRevenue, 2), 'icon' => 'fa-sack-dollar', 'tone' => 'green'])
@@ -48,6 +51,7 @@
     @foreach([
         ['Recently Registered Companies', $recentCompanies, 'name', 'email', 'super-admin.companies.show'],
         ['Pending Company Approvals', $latestRequests, 'company_name', 'admin_email', 'super-admin.company-requests.show'],
+        ['Recent Plan Changes', $recentPlanChanges, 'id', 'status', 'super-admin.subscription-change-requests.show'],
         ['Recent Subscription Payments', $recentPayments, 'transaction_reference', 'amount', 'super-admin.payments.show'],
         ['Recent Projects', $recentProjects, 'name', 'status', 'super-admin.reports.show'],
         ['Latest Platform Users', $latestUsers, 'name', 'email', 'super-admin.users.show'],

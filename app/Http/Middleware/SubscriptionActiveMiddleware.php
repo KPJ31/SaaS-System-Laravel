@@ -19,13 +19,31 @@ class SubscriptionActiveMiddleware
         $subscription = $user->company?->activeSubscription;
 
         if (! $subscription || ! in_array($subscription->status, ['trialing', 'active'], true)) {
+            if ($this->isSubscriptionSelfServiceRoute($request)) {
+                return $next($request);
+            }
+
             abort(403, 'Your company subscription is not active.');
         }
 
         if ($subscription->ends_at && $subscription->ends_at->isPast()) {
+            if ($this->isSubscriptionSelfServiceRoute($request)) {
+                return $next($request);
+            }
+
             abort(403, 'Your company subscription has expired.');
         }
 
         return $next($request);
+    }
+
+    private function isSubscriptionSelfServiceRoute(Request $request): bool
+    {
+        return $request->routeIs(
+            'company-admin.subscription.*',
+            'company-admin.company-profile.*',
+            'company-admin.notifications.*',
+            'company-admin.profile.*'
+        );
     }
 }

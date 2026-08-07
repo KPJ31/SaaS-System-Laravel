@@ -76,7 +76,11 @@ class PaymentController extends Controller
                 'verification_note' => $data['verification_note'] ?? null,
             ]);
 
-            if ($status === 'verified' && $payment->payment_type === 'subscription' && $payment->subscription) {
+            $changeRequest = $payment->subscriptionChangeRequest;
+
+            if ($status === 'verified' && $changeRequest) {
+                $changeRequest->update(['status' => 'under_review']);
+            } elseif ($status === 'verified' && $payment->payment_type === 'subscription' && $payment->subscription) {
                 $renewFrom = $payment->subscription->renews_at && $payment->subscription->renews_at->isFuture()
                     ? $payment->subscription->renews_at
                     : now();

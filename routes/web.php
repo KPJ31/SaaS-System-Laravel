@@ -21,6 +21,7 @@ use App\Http\Controllers\CompanyAdmin\ProjectController as CompanyAdminProjectCo
 use App\Http\Controllers\CompanyAdmin\ProjectRequestController as CompanyAdminProjectRequestController;
 use App\Http\Controllers\CompanyAdmin\ReportController as CompanyAdminReportController;
 use App\Http\Controllers\CompanyAdmin\SettingController as CompanyAdminSettingController;
+use App\Http\Controllers\CompanyAdmin\SubscriptionChangeController;
 use App\Http\Controllers\CompanyAdmin\TaskController as CompanyAdminTaskController;
 use App\Http\Controllers\CompanyAdmin\WorkSessionController as CompanyAdminWorkSessionController;
 use App\Http\Controllers\CompanyRegistrationController;
@@ -50,6 +51,7 @@ use App\Http\Controllers\SuperAdmin\RevenueController;
 use App\Http\Controllers\SuperAdmin\ReportController;
 use App\Http\Controllers\SuperAdmin\SettingController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPlanController;
+use App\Http\Controllers\SuperAdmin\SubscriptionChangeRequestController;
 use App\Http\Controllers\SuperAdmin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -102,6 +104,11 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->name('su
     Route::put('/subscriptions/{subscription}', [CompanySubscriptionController::class, 'update'])->name('subscriptions.update');
     Route::post('/subscriptions/{subscription}/{status}', [CompanySubscriptionController::class, 'updateStatus'])->name('subscriptions.status');
 
+    Route::get('/subscription-change-requests', [SubscriptionChangeRequestController::class, 'index'])->name('subscription-change-requests.index');
+    Route::get('/subscription-change-requests/{subscriptionChangeRequest}', [SubscriptionChangeRequestController::class, 'show'])->name('subscription-change-requests.show');
+    Route::post('/subscription-change-requests/{subscriptionChangeRequest}/approve', [SubscriptionChangeRequestController::class, 'approve'])->name('subscription-change-requests.approve');
+    Route::post('/subscription-change-requests/{subscriptionChangeRequest}/reject', [SubscriptionChangeRequestController::class, 'reject'])->name('subscription-change-requests.reject');
+
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::post('/users/{user}/{status}', [UserController::class, 'updateStatus'])->name('users.status');
@@ -141,6 +148,14 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
     Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
     Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
     Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+
+    Route::get('/subscription', [SubscriptionChangeController::class, 'index'])->name('subscription.index');
+    Route::get('/subscription/change/{plan}', [SubscriptionChangeController::class, 'create'])->name('subscription.change.create');
+    Route::post('/subscription/change', [SubscriptionChangeController::class, 'store'])->name('subscription.change.store');
+    Route::get('/subscription/change-requests/{changeRequest}', [SubscriptionChangeController::class, 'show'])->name('subscription.change.show');
+    Route::get('/subscription/change-requests/{changeRequest}/payment', [SubscriptionChangeController::class, 'payment'])->name('subscription.change.payment');
+    Route::post('/subscription/change-requests/{changeRequest}/payment', [SubscriptionChangeController::class, 'submitPayment'])->name('subscription.change.payment.store');
+    Route::post('/subscription/change-requests/{changeRequest}/cancel', [SubscriptionChangeController::class, 'cancel'])->name('subscription.change.cancel');
 
     Route::resource('employees', EmployeeController::class);
     Route::get('/employee-permissions', [EmployeePermissionController::class, 'index'])->name('employees.permissions.index');

@@ -12,7 +12,7 @@
 
         h1 {
             margin: 0 0 4px;
-            color: #4c1d95;
+            color: #1d4ed8;
             font-size: 22px;
         }
 
@@ -27,15 +27,15 @@
         }
 
         th {
-            background: #f5f3ff;
-            color: #4c1d95;
+            background: #eff6ff;
+            color: #1d4ed8;
             font-weight: bold;
             text-align: left;
         }
 
         th,
         td {
-            border: 1px solid #e9d5ff;
+            border: 1px solid #dbeafe;
             padding: 7px;
             vertical-align: top;
         }
