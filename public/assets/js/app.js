@@ -64,7 +64,7 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
             title: form.dataset.confirm,
             text: form.dataset.confirmText || 'Please confirm before continuing.',
             showCancelButton: true,
-            confirmButtonColor: '#3651D4',
+            confirmButtonColor: '#2563EB',
             cancelButtonColor: '#64748B',
             confirmButtonText: form.dataset.confirmButton || 'Yes, continue',
         }).then((result) => {
@@ -168,7 +168,7 @@ document.querySelectorAll('[data-password-strength]').forEach((input) => {
         if (/[^A-Za-z0-9]/.test(value)) score += 1;
 
         const widths = ['15%', '35%', '60%', '82%', '100%'];
-        const colors = ['#EF4444', '#F59E0B', '#2563EB', '#10B981', '#10B981'];
+        const colors = ['#EF4444', '#F59E0B', '#2563EB', '#22C55E', '#22C55E'];
         const labels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Strong'];
 
         bar?.style.setProperty('--strength-width', widths[score]);
@@ -297,7 +297,7 @@ const chartColors = {
     success: '#22C55E',
     warning: '#F59E0B',
     danger: '#EF4444',
-    purple: '#8B5CF6',
+    accent: '#8B5CF6',
     muted: '#64748B',
 };
 const chartPalette = [
@@ -306,7 +306,7 @@ const chartPalette = [
     chartColors.success,
     chartColors.warning,
     chartColors.danger,
-    chartColors.purple,
+    chartColors.accent,
     chartColors.muted,
 ];
 
@@ -456,7 +456,7 @@ if (window.Chart && window.elevanixDashboardCharts) {
 
     makeChart('[data-chart="revenueGrowth"]', {
         type: 'bar',
-        data: { labels: data.labels, datasets: [{ label: 'Revenue', data: data.revenueGrowth, backgroundColor: chartColors.purple, borderRadius: 6, borderSkipped: false, maxBarThickness: 32, categoryPercentage: 0.7, barPercentage: 0.75 }] },
+        data: { labels: data.labels, datasets: [{ label: 'Revenue', data: data.revenueGrowth, backgroundColor: chartColors.accent, borderRadius: 6, borderSkipped: false, maxBarThickness: 32, categoryPercentage: 0.7, barPercentage: 0.75 }] },
         options: barOptions,
     });
 

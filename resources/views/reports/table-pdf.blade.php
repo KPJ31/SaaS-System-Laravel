@@ -4,13 +4,13 @@
     <meta charset="utf-8">
     <title>{{ $title }}</title>
     <style>
-        body { color: #1f2937; font-family: DejaVu Sans, sans-serif; font-size: 11px; }
+        body { color: #475569; font-family: DejaVu Sans, sans-serif; font-size: 11px; }
         h1 { margin: 0 0 4px; color: #1d4ed8; font-size: 22px; }
-        .meta { margin-bottom: 18px; color: #6b7280; line-height: 1.5; }
+        .meta { margin-bottom: 18px; color: #64748b; line-height: 1.5; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #eff6ff; color: #1d4ed8; font-weight: bold; text-align: left; }
         th, td { border: 1px solid #dbeafe; padding: 7px; vertical-align: top; }
-        tr:nth-child(even) td { background: #fafafa; }
+        tr:nth-child(even) td { background: #F8FAFC; }
     </style>
 </head>
 <body>

@@ -5,7 +5,7 @@
     <title>{{ $title }}</title>
     <style>
         body {
-            color: #1f2937;
+            color: #475569;
             font-family: DejaVu Sans, sans-serif;
             font-size: 11px;
         }
@@ -18,7 +18,7 @@
 
         .meta {
             margin-bottom: 18px;
-            color: #6b7280;
+            color: #64748b;
         }
 
         table {
@@ -41,7 +41,7 @@
         }
 
         tr:nth-child(even) td {
-            background: #fafafa;
+            background: #F8FAFC;
         }
     </style>
 </head>

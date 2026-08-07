@@ -147,7 +147,7 @@
                 </x-landing.section-heading>
                 <div class="row g-4">
                     @foreach([
-                        ['Super Admin', 'fa-solid fa-user-tie', 'tone-purple', ['Review company registration requests', 'Approve, suspend or reactivate companies', 'Manage subscription plans and payments', 'View platform reports and audit logs', 'Configure safe system settings']],
+                        ['Super Admin', 'fa-solid fa-user-tie', 'tone-blue', ['Review company registration requests', 'Approve, suspend or reactivate companies', 'Manage subscription plans and payments', 'View platform reports and audit logs', 'Configure safe system settings']],
                         ['Company Admin', 'fa-solid fa-briefcase', 'tone-blue', ['Manage company profile and settings', 'Create employees and clients', 'Handle project requests', 'Manage company projects, tasks and invoices', 'Review company reports and work sessions']],
                         ['Employee', 'fa-solid fa-user-check', 'tone-cyan', ['View assigned company projects', 'Update assigned tasks', 'Start and stop work timer', 'Review own work sessions', 'Receive company notifications']],
                     ] as [$title, $icon, $tone, $items])

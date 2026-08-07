@@ -5,7 +5,7 @@
                 icon: @json(session('success') ? 'success' : 'error'),
                 title: @json(session('success') ? 'Success' : 'Error'),
                 text: @json(session('success') ?: session('error')),
-                confirmButtonColor: '#7C3AED'
+                confirmButtonColor: '#2563EB'
             });
         });
     </script>

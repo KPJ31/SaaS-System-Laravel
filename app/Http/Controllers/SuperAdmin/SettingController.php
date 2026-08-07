@@ -23,7 +23,7 @@ class SettingController extends Controller
             'date_format' => 'Y-m-d',
             'platform_logo' => '',
             'favicon' => '',
-            'primary_color' => '#6D28D9',
+            'primary_color' => '#2563EB',
             'login_background_image' => '',
             'registration_enabled' => true,
             'company_approval_required' => true,
