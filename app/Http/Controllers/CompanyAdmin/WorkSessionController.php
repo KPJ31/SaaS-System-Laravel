@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CompanyAdmin;
 use App\Http\Controllers\CompanyAdmin\Concerns\HandlesCompanyAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkSession;
 use App\Services\AuditLogger;
@@ -25,7 +26,9 @@ class WorkSessionController extends Controller
             'sessions' => $sessions,
             'employees' => User::where('company_id', $this->companyId())->where('role', 'employee')->orderBy('name')->get(),
             'projects' => Project::where('company_id', $this->companyId())->orderBy('name')->get(),
+            'tasks' => Task::where('company_id', $this->companyId())->orderBy('title')->get(),
             'runningTimers' => WorkSession::where('company_id', $this->companyId())->whereNull('ended_at')->count(),
+            'pendingManual' => WorkSession::where('company_id', $this->companyId())->where('is_manual', true)->where('approval_status', 'pending')->count(),
             'todayMinutes' => WorkSession::where('company_id', $this->companyId())->whereDate('started_at', today())->sum('duration_minutes'),
             'monthMinutes' => WorkSession::where('company_id', $this->companyId())->whereBetween('started_at', [now()->startOfMonth(), now()->endOfMonth()])->sum('duration_minutes'),
         ]);
@@ -87,15 +90,18 @@ class WorkSessionController extends Controller
         return WorkSession::with(['user', 'project', 'task'])
             ->where('company_id', $this->companyId())
             ->when($request->status === 'running', fn ($query) => $query->whereNull('ended_at'))
+            ->when($request->status === 'manual_pending', fn ($query) => $query->where('is_manual', true)->where('approval_status', 'pending'))
+            ->when(in_array($request->status, ['stopped', 'adjusted'], true), fn ($query) => $query->where('status', $request->status))
             ->when($request->employee_id, fn ($query, $employeeId) => $query->where('user_id', $employeeId))
             ->when($request->project_id, fn ($query, $projectId) => $query->where('project_id', $projectId))
+            ->when($request->task_id, fn ($query, $taskId) => $query->where('task_id', $taskId))
             ->when($request->date_from, fn ($query, $date) => $query->whereDate('started_at', '>=', $date))
             ->when($request->date_to, fn ($query, $date) => $query->whereDate('started_at', '<=', $date));
     }
 
     private function workSessionHeaders(): array
     {
-        return ['Employee', 'Project', 'Task', 'Started', 'Ended', 'Minutes', 'Notes'];
+        return ['Employee', 'Project', 'Task', 'Started', 'Ended', 'Minutes', 'Notes', 'Status', 'Source', 'Approval'];
     }
 
     private function workSessionRows($rows)
@@ -108,6 +114,9 @@ class WorkSessionController extends Controller
             $session->ended_at?->toDateTimeString() ?? 'Running',
             $session->duration_minutes,
             $session->notes ?? '-',
+            $session->status,
+            $session->is_manual ? 'Manual' : 'Timer',
+            $session->approval_status ?? '-',
         ]);
     }
 
@@ -128,7 +137,7 @@ class WorkSessionController extends Controller
 
     private function activeFilters(Request $request): array
     {
-        return collect($request->only(['employee_id', 'project_id', 'date_from', 'date_to', 'status']))
+        return collect($request->only(['employee_id', 'project_id', 'task_id', 'date_from', 'date_to', 'status']))
             ->filter(fn ($value) => filled($value))
             ->mapWithKeys(fn ($value, $key) => [str_replace('_', ' ', ucfirst($key)) => (string) $value])
             ->all();
@@ -136,12 +145,18 @@ class WorkSessionController extends Controller
 
     private function authorizeFilters(Request $request): void
     {
+        abort_unless(! $request->filled('status') || in_array($request->status, ['running', 'stopped', 'adjusted', 'manual_pending'], true), 404);
+
         if ($request->filled('employee_id')) {
             abort_unless(User::where('company_id', $this->companyId())->where('role', 'employee')->whereKey($request->integer('employee_id'))->exists(), 403);
         }
 
         if ($request->filled('project_id')) {
             abort_unless(Project::where('company_id', $this->companyId())->whereKey($request->integer('project_id'))->exists(), 403);
+        }
+
+        if ($request->filled('task_id')) {
+            abort_unless(Task::where('company_id', $this->companyId())->whereKey($request->integer('task_id'))->exists(), 403);
         }
     }
 

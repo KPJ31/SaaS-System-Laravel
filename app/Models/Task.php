@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
+use App\Services\TaskWorkflowService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -67,5 +68,20 @@ class Task extends Model
     public function files(): HasMany
     {
         return $this->hasMany(WorkFile::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function isOverdue(): bool
+    {
+        return app(TaskWorkflowService::class)->isOverdue($this);
+    }
+
+    public function workflowGroup(): string
+    {
+        return app(TaskWorkflowService::class)->groupFor($this->status);
     }
 }

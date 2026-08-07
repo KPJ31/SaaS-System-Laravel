@@ -1,208 +1,150 @@
-# Elevanix - Smart Software Company Management System
+# Elevanix
 
-Elevanix is a Laravel-based multi-tenant SaaS platform for managing software companies, their employees, clients, projects, tasks, attendance, work sessions, payments, invoices, reports, notifications, and audit history from one role-aware workspace.
+Smart Software Company Management System
 
-The application is built as a final-year BEng (Hons) Software Engineering project and is organized around three authenticated user areas: Super Admin, Company Admin, and Employee.
+Elevanix is a SaaS-based software company and software agency management platform built with Laravel. It centralizes company operations such as company onboarding, employees, clients, project requests, projects, tasks, work tracking, attendance, leave, calendar events, payments, invoices, reports, notifications, and audit history.
 
-## Contents
+The system has three authenticated user areas: Super Admin, Company Admin, and Employee.
 
-- [Project Purpose](#project-purpose)
-- [SaaS Model](#saas-model)
-- [User Roles](#user-roles)
-- [Core Modules](#core-modules)
-- [Main Workflows](#main-workflows)
-- [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Environment Configuration](#environment-configuration)
-- [Database and Seed Data](#database-and-seed-data)
-- [Mail, Queue, Scheduler, and Storage](#mail-queue-scheduler-and-storage)
-- [Useful Commands](#useful-commands)
-- [Testing](#testing)
-- [Security Notes](#security-notes)
-- [Reports and Exports](#reports-and-exports)
-- [Frontend and Design](#frontend-and-design)
-- [Troubleshooting](#troubleshooting)
-- [Future Improvements](#future-improvements)
-- [Project Status](#project-status)
-- [Author and License](#author-and-license)
+## About the System
 
-## Project Purpose
+Elevanix lets a platform owner manage multiple software companies from one application while each approved company works inside its own operational workspace. Company-owned records are separated by tenant ownership, mainly through `company_id`, and access is controlled through roles, middleware, policies, permissions, and company-aware queries.
 
-Elevanix helps a SaaS platform owner onboard and manage software companies while giving each approved company its own operational workspace. It supports day-to-day company administration, employee self-service, client/project delivery tracking, payment and invoice records, attendance, leave, file sharing, reporting, and audit visibility.
+The repository contains custom Laravel domain models, controllers, services, policies, middleware, seeders, Blade views, reports, exports, notifications, and tests. It is not the default Laravel starter application.
 
-The system is not a generic Laravel starter. It contains custom domain models, controllers, middleware, policies, seeders, dashboards, reports, and Blade interfaces for a software company management workflow.
+## Key Features
 
-## SaaS Model
-
-Elevanix uses a shared-application, shared-database SaaS model with tenant separation based on `company_id`.
-
-- The Super Admin manages the platform itself.
-- Each approved company acts as a tenant.
-- Company Admins manage only their own company records.
-- Employees access their own company data according to assigned permissions.
-- Subscription plans define company limits such as employees, clients, projects, storage, and trial days.
-- Middleware blocks access for unapproved companies, inactive employees, or inactive subscriptions.
-
-Tenant isolation is implemented in application logic through company-aware queries, route middleware, policies, and helper concerns such as company access handlers.
+- Multi-company SaaS architecture.
+- Role-based access for Super Admin, Company Admin, and Employee users.
+- Company registration, approval, and rejection workflow.
+- Subscription plans, company subscriptions, subscription change requests, and payment tracking.
+- Employee management with direct permission assignment.
+- Client, project request, project, task, Kanban, comment, and work-file management.
+- Attendance, work sessions, leave requests, personal todos, and employee performance views.
+- Calendar and company event management.
+- Invoices, invoice items, client-project payments, and payment verification.
+- Company and platform reports with CSV/PDF exports.
+- Database notifications and audit/activity logging.
 
 ## User Roles
 
-### Super Admin
+The implemented role values are defined in `app/Enums/UserRole.php`.
 
-Super Admin users manage the SaaS platform:
+| Role | Value | Purpose |
+| --- | --- | --- |
+| Super Admin | `super_admin` | Manages the SaaS platform, companies, subscriptions, payments, users, reports, settings, and platform audit data. |
+| Company Admin | `company_admin` | Manages one approved company workspace and its operational records. |
+| Employee | `employee` | Works inside one company and manages assigned work, attendance, leave, files, todos, notifications, and profile data. |
 
-- Review, approve, or reject company registration requests.
-- Manage companies and company statuses.
-- Manage subscription plans and subscriptions.
-- Verify SaaS subscription payments.
-- View platform revenue.
-- View platform reports, notifications, audit logs, settings, users, and profile details.
+There is no authenticated Client role in the current codebase.
 
-### Company Admin
+## Super Admin
 
-Company Admin users manage a single company tenant:
+Super Admin routes live under `/super-admin` and include dashboard, company registration requests, companies and statuses, subscription plans, company subscriptions, subscription change requests, platform users, subscription payments, revenue, CSV/PDF reports, notifications, audit logs, system settings, profile, and password management.
 
-- Maintain company profile and company settings.
-- Manage employees and employee permissions.
-- Manage clients, project requests, projects, tasks, work sessions, attendance, leave requests, documents, payments, invoices, feedback, reports, notifications, activity logs, and profile details.
-- Review project requests and convert approved requests into projects.
-- Verify or reject client-project payment records.
+## Company Admin
 
-### Employee
+Company Admin routes live under `/company-admin` and require authentication, the `company_admin` role, active company approval, and an active/trialing subscription except for limited subscription self-service routes. Implemented modules include dashboard, calendar, company events, company profile/settings, subscription changes, employees, employee permissions, clients, project requests, projects, task Kanban, tasks, work sessions, attendance, leave review, documents, invoices, payments, feedback, reports, notifications, activity logs, personal todos, profile, and password management.
 
-Employee users work inside their assigned company:
+## Employee
 
-- View the employee dashboard.
-- View assigned projects and tasks.
-- Start/stop task work, update task progress/status, add comments, and upload task files.
-- Manage own attendance, work sessions, leave requests, documents, notifications, profile, password, performance, and activity history.
-- Access selected clients and reports only when granted the matching built-in permissions.
+Employee routes live under `/employee` and require authentication, the `employee` role, active employee status, active company approval, and an active/trialing subscription. Implemented modules include dashboard, calendar, assigned projects, assigned tasks, task workflow updates, comments, file uploads/downloads, work timer, work sessions, attendance check-in/check-out, leave requests, documents, performance, personal todos, notifications, activity history, profile, and password management. Employees can also access selected clients and reports when direct permissions are assigned.
 
-## Core Modules
+## Main System Workflow
 
-- Public pages: landing page, about, contact, privacy policy, terms and company registration.
-- Authentication: login, logout, forgot password, reset password, and dashboard redirection.
-- Company onboarding: company registration requests, approval/rejection, approved company records, and demo tenant data.
-- Subscription management: subscription plans, company subscriptions, subscription payments, status changes, and platform revenue.
-- Employee management: employee CRUD, status management, password reset flow, permission assignment, permission copy, and permission reset.
-- Client management: client records, project links, payments, invoices, and status control.
-- Project requests and projects: request review, approval/rejection, conversion, project assignment, project files, and status tracking.
-- Tasks: task assignment, review, status changes, progress, comments, file upload/download, and work session integration.
-- Attendance and leave: check-in/check-out, attendance editing, absence marking command, leave request review/cancel workflows.
-- Work sessions: employee work logs, admin adjustment, CSV/PDF export.
-- Finance: client-project payments, SaaS subscription payments, invoices, invoice items, printing, and payment status handling.
-- Reports: platform reports and company reports with CSV/PDF export options.
-- Notifications and audit logs: database notifications and activity/audit history.
-- Settings and profiles: platform settings, company settings, profile image upload, and password changes.
-
-## Main Workflows
-
-### Company Onboarding
-
-1. A company submits a registration request from `/company/register`.
-2. The Super Admin reviews the request under `/super-admin/company-requests`.
-3. Approval creates or activates the company/admin path used by the tenant.
-4. Rejection stores the rejection reason and notifies the requester.
-
-### Tenant Operations
-
-1. A Company Admin logs in after company approval and active subscription validation.
-2. The Company Admin creates employees, clients, project requests/projects, tasks, invoices, payments, and company documents.
-3. Employees log in to manage assigned work, attendance, leave, files, notifications, and profile data.
-4. Company Admins use reports and exports to review performance, attendance, revenue, payments, invoices, and operational data.
-
-### Subscription and Revenue
-
-1. Super Admin defines subscription plans.
-2. Companies are attached to subscriptions.
-3. Subscription payment records are reviewed by the Super Admin.
-4. Verified, received, or paid subscription payments count toward recognized platform revenue.
+1. A company submits a public registration request.
+2. A Super Admin approves or rejects the request.
+3. Approval creates or activates the company workspace and Company Admin account.
+4. The Company Admin manages subscription needs, company settings, employees, permissions, and clients.
+5. Project requests are reviewed and can be converted into projects.
+6. Projects receive team members and tasks.
+7. Employees work on assigned tasks, track time, update status/progress, comment, and upload files.
+8. Company Admins review submitted tasks and monitor attendance, leave, work sessions, and project progress.
+9. Invoices and payments are recorded for client-project work.
+10. Reports, notifications, exports, and audit logs support follow-up.
 
 ## Technology Stack
 
 ### Backend
 
 - PHP `^8.3`
-- Laravel `13.x`
-- MySQL for local/default application database
-- SQLite in-memory database for automated tests
+- Laravel `13.x` (`13.23.0` verified locally)
+- MySQL by default through `.env.example`
 - Laravel database sessions, cache, queues, notifications, mail, policies, middleware, seeders, migrations, and Blade views
 - `barryvdh/laravel-dompdf` for PDF generation
 
 ### Frontend
 
 - Blade templates
-- Bootstrap 5.3.3 via CDN
-- Font Awesome 6.5.2 via CDN
-- SweetAlert2 via CDN
-- Chart.js via CDN
-- Google Fonts Poppins in the Blade layouts
+- Bootstrap 5.3.3 loaded by the active Blade layout
+- Font Awesome 6.5.2
+- SweetAlert2
+- Chart.js
 - Custom CSS and JavaScript in `public/assets/css/app.css` and `public/assets/js/app.js`
-- Vite/Tailwind tooling is present through `resources/css/app.css`, `resources/js/app.js`, `vite.config.js`, and `package.json`
+- Vite tooling for `resources/css/app.css` and `resources/js/app.js`
+- Tailwind tooling is installed, but Bootstrap and `public/assets` are the active application UI layer
 
-### Development and Testing
+### Testing and Tooling
 
 - Composer
 - Node.js and npm
 - Vite
 - Laravel Pint
-- Pest with Laravel plugin
+- Pest with the Laravel plugin
 - PHPUnit configuration through `phpunit.xml`
+- SQLite in-memory database for automated tests
 
-## Project Structure
+## System Architecture
 
 ```text
-app/
-  Console/Commands/        Custom Artisan commands, including attendance absence marking
-  Http/Controllers/        Public, auth, Super Admin, Company Admin, and Employee controllers
-  Http/Middleware/         Role, permission, company approval, employee active, subscription checks
-  Models/                  Domain models such as Company, User, Project, Task, Payment, Invoice
-  Notifications/           Company registration notification classes
-  Policies/                Authorization policies
-  Support/                 Permission catalog, dashboard navigation, audit logger, helpers
-
-bootstrap/
-  app.php                  Route, middleware, and exception bootstrap configuration
-
-config/
-  app.php, database.php, mail.php, queue.php, filesystems.php, services.php
-
-database/
-  migrations/              Database schema
-  seeders/                 Permission, system setting, subscription, super admin, and demo data seeders
-
-public/
-  assets/css/app.css       Main custom application stylesheet used by Blade layouts
-  assets/js/app.js         Main custom application JavaScript used by Blade layouts
-
-resources/
-  views/                   Blade views grouped by public, auth, super-admin, company-admin, employee
-  css/app.css              Vite/Tailwind entry
-  js/app.js                Vite JavaScript entry
-
-routes/
-  web.php                  Web routes for public, auth, Super Admin, Company Admin, and Employee areas
-  console.php              Console routes and custom console closures
-
-tests/
-  Feature/                 Feature tests for platform, company admin, employee, auth, reports, payments
-  Unit/                    Unit tests
+Browser
+  -> Laravel Blade UI
+  -> Web routes and middleware
+  -> Controllers, form requests, policies, and services
+  -> Eloquent models
+  -> MySQL database
 ```
+
+Super Admin users operate at platform level. Company Admin and Employee users are constrained by company ownership, role middleware, subscription checks, policies, and direct permissions.
+
+## Core Modules
+
+### Company and Subscription Management
+The platform supports public company registration, Super Admin review, company approval/rejection, company status management, company profile updates, settings, subscription plans, company subscriptions, subscription change requests, and payment proof uploads.
+
+### Employees and Permissions
+Company Admin users manage employees, reset employee passwords, suspend accounts, and assign direct permissions. Permissions use the built-in Elevanix `permissions` and `permission_user` tables, not Spatie Permission.
+
+### Clients, Projects, and Tasks
+Company Admin users manage clients, project requests, projects, project teams, task assignment, task workflows, Kanban movement, comments, task review, files, dates, and progress sync.
+
+### Attendance, Work, Leave, and Calendar
+Employees can check in/out, track task work sessions, request leave, manage personal todos, and view calendar data. Company Admin users review leave, correct attendance, export attendance/work data, and manage company events.
+
+### Finance
+Finance features include invoices, invoice items, invoice print views, client-project payments, subscription payments, payment verification/rejection, revenue views, and financial reports. Elevanix is not a full accounting platform.
+
+### Reports, Notifications, and Audit
+Company reports include project performance, task performance, employee progress, worked hours, attendance, leave, financial summary, invoices, payments, revenue, employees, clients, project requests, activity logs, and feedback where supported by routes/services. Super Admin reports include platform companies, subscriptions, payments/revenue, users, audit logs, registration requests, and subscription change requests. Laravel notifications are used for registration, tasks, due reminders, leave, events, and subscription changes. Audit logs record important actions, but they should not be treated as compliance-grade immutable logs without additional infrastructure.
+
+## Requirements
+
+- PHP 8.3 or newer.
+- Composer.
+- MySQL or a compatible database server.
+- Node.js and npm when building or running Vite assets.
+- PHP extensions normally required by Laravel, database access, file uploads, and DomPDF.
 
 ## Installation
 
-### Requirements
+Clone the repository, replacing the placeholder with the real repository URL:
 
-- PHP 8.3 or newer
-- Composer
-- Node.js and npm
-- MySQL or a compatible database server
-- PHP extensions required by Laravel and DomPDF
+```bash
+git clone <repository-url>
+cd SaaS-System
+```
 
-### Setup Steps
-
-Clone or open the project, then run:
+Install dependencies:
 
 ```bash
 composer install
@@ -221,30 +163,11 @@ On Windows PowerShell:
 Copy-Item .env.example .env
 ```
 
-Generate the application key:
+Generate the app key, configure the database, migrate, seed, and link storage:
 
 ```bash
 php artisan key:generate
-```
-
-Create the configured MySQL database. The example environment uses:
-
-```env
-DB_CONNECTION=mysql
-DB_DATABASE=elevanix
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-Run migrations and seeders:
-
-```bash
 php artisan migrate --seed
-```
-
-Create the public storage link:
-
-```bash
 php artisan storage:link
 ```
 
@@ -254,13 +177,11 @@ Build frontend assets:
 npm run build
 ```
 
-Start the local development stack:
+On Windows PowerShell, if script execution policy blocks `npm`, use:
 
-```bash
-composer run dev
+```powershell
+npm.cmd run build
 ```
-
-The `dev` script runs Laravel's development server, the queue listener, and Vite together.
 
 ## Environment Configuration
 
@@ -284,6 +205,7 @@ SESSION_DRIVER=database
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 FILESYSTEM_DISK=local
+FILESYSTEM_LOCAL_SERVE=false
 
 MAIL_MAILER=smtp
 MAIL_HOST=
@@ -294,25 +216,109 @@ MAIL_FROM_ADDRESS="noreply@example.com"
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-For production, set `APP_ENV=production`, set `APP_DEBUG=false`, configure a real database, queue worker, mail provider, HTTPS `APP_URL`, backups, log rotation, and secure secret management.
+Never commit real `.env` secrets.
 
-## Database and Seed Data
+## Database Setup
 
-The migrations create tables for:
+The example environment uses MySQL and the database name `elevanix`.
 
-- users, password reset tokens, sessions, cache, jobs, failed jobs
-- companies and company registration requests
-- clients, project requests, projects, project-user assignments
-- tasks, task comments, work sessions, work files
-- attendance and leave requests
-- payments, invoices, invoice items
-- feedback, notifications, audit logs
-- permissions and user permissions
-- subscription plans, subscriptions, company settings, and system settings
+Normal setup:
 
-The default seed flow includes permissions, system settings, subscription plans, a Super Admin, demo companies, demo subscriptions, demo users, demo clients, demo projects, demo finance records, demo work sessions, company registration requests, and audit logs.
+```bash
+php artisan migrate
+php artisan db:seed
+```
 
-Development/demo accounts created by the seeders include:
+Or:
+
+```bash
+php artisan migrate --seed
+```
+
+Development only: `php artisan migrate:fresh --seed` deletes all existing database data before rebuilding the schema.
+
+## Storage Setup
+
+Uploads use Laravel storage on the public disk. This includes profile images, company logos, subscription proof files, and project/task work files.
+
+```bash
+php artisan storage:link
+```
+
+The local disk serving helper is disabled by default:
+
+```env
+FILESYSTEM_LOCAL_SERVE=false
+```
+
+## Running the Application
+
+Run Laravel only:
+
+```bash
+php artisan serve
+```
+
+Run Vite during frontend asset development:
+
+```bash
+npm run dev
+```
+
+Run the combined local development script:
+
+```bash
+composer run dev
+```
+
+The `dev` script starts the Laravel server, a queue listener, and Vite through `concurrently`.
+
+## Queue Setup
+
+The project is configured for the database queue connection:
+
+```env
+QUEUE_CONNECTION=database
+```
+
+Run a queue worker in environments that use queued jobs or queue-backed mail/notification handling:
+
+```bash
+php artisan queue:work
+```
+
+The main browser workflows do not require a worker for every request, but `composer run dev` starts a local queue listener.
+
+## Scheduler Setup
+
+`routes/console.php` schedules task due reminders:
+
+```php
+Schedule::command('notifications:task-due-reminders')->dailyAt('08:00');
+```
+
+For local development:
+
+```bash
+php artisan schedule:work
+```
+
+For production, configure the server scheduler/cron to run Laravel's scheduler every minute:
+
+```bash
+php artisan schedule:run
+```
+
+The project also includes a manual attendance command:
+
+```bash
+php artisan attendance:mark-absent
+php artisan attendance:mark-absent --date=2026-08-07
+```
+
+## Default / Demo Accounts
+
+The seeders intentionally create local/demo accounts. Use these only for development or demonstration environments.
 
 | Role | Username | Email | Password |
 | --- | --- | --- | --- |
@@ -322,95 +328,11 @@ Development/demo accounts created by the seeders include:
 | Employee | `maya` | `employee1@elevanix.test` | `Password@123` |
 | Employee | `arun` | `employee2@elevanix.test` | `Password@123` |
 
-Use these credentials only in local or demo environments.
-
-## Mail, Queue, Scheduler, and Storage
-
-### Mail
-
-The application uses Laravel mail and notifications. Registration approval, rejection, and received notifications are implemented under `app/Notifications`.
-
-Configure SMTP or another Laravel mailer through `.env`. In tests, `phpunit.xml` sets `MAIL_MAILER=array`.
-
-### Queue
-
-The default queue connection is database-backed in `.env.example`:
-
-```env
-QUEUE_CONNECTION=database
-```
-
-Run a queue worker in environments where queued jobs are used:
-
-```bash
-php artisan queue:work
-```
-
-The local `composer run dev` script uses:
-
-```bash
-php artisan queue:listen --tries=1 --timeout=0
-```
-
-### Scheduler and Attendance Command
-
-No recurring schedule is currently registered in `routes/console.php`. The project includes a custom Artisan command for marking absent attendance:
-
-```bash
-php artisan attendance:mark-absent
-php artisan attendance:mark-absent --date=2026-08-07
-```
-
-If this should run automatically in production, add it to Laravel's scheduler and configure the system cron or scheduler runner for the deployment environment.
-
-### Storage
-
-Uploaded files use Laravel filesystem disks. Public uploads include profile images, company logos, and work files stored under paths such as `avatars`, `profile-images`, `company-logos`, and `work-files/{companyId}` on the public disk.
-
-Run this once after installation:
-
-```bash
-php artisan storage:link
-```
-
-If the link already exists, Laravel will report that `public/storage` is already present.
-
-## Useful Commands
-
-```bash
-composer install
-npm install
-php artisan key:generate
-php artisan migrate
-php artisan migrate --seed
-php artisan db:seed
-php artisan route:list
-php artisan queue:work
-php artisan attendance:mark-absent
-php artisan storage:link
-npm run dev
-npm run build
-composer run dev
-composer test
-php artisan test
-vendor/bin/pint
-```
-
-Avoid destructive database reset commands unless you intentionally want to remove local data.
+Change or remove demo credentials before production deployment.
 
 ## Testing
 
-Automated tests are configured in `phpunit.xml`.
-
-The test environment uses:
-
-- SQLite in-memory database
-- array mailer
-- sync queue
-- array session driver
-- array cache store
-
-Run the full test suite:
+Run the full Pest/PHPUnit test suite:
 
 ```bash
 php artisan test
@@ -422,117 +344,145 @@ Or through Composer:
 composer test
 ```
 
-Recent local verification passed with:
+The test environment uses SQLite in-memory, array mailer, sync queue, array session driver, and array cache store.
 
-```text
-134 tests, 391 assertions
+Targeted examples:
+
+```bash
+php artisan test --filter=CompanyAdminModuleTest
+php artisan test --filter=EmployeeModuleTest
 ```
 
-The test suite covers authentication, public pages, registration, Super Admin workflows, Company Admin workflows, Employee workflows, reports, payments, permissions, tenancy checks, dashboards, and related feature behavior.
+## Useful Artisan Commands
 
-## Security Notes
+```bash
+php artisan about
+php artisan route:list
+php artisan migrate:status
+php artisan optimize:clear
+php artisan queue:work
+php artisan schedule:work
+php artisan notifications:task-due-reminders
+php artisan attendance:mark-absent
+php artisan test
+```
 
-- Authentication is handled through Laravel's auth system and custom controllers.
-- Authorization uses role middleware, permission middleware, Laravel policies, and company-aware access checks.
-- Main middleware aliases include `role`, `permission`, `company.approved`, `employee.active`, and `subscription.active`.
-- Employee permissions are implemented by the built-in Elevanix permission catalog and permission tables, not by Spatie Permission.
-- Tenant access is constrained through `company_id`, middleware, policies, and company access concerns.
-- Payment views separate SaaS subscription payments from client-project payments.
-- Audit logs record important platform and tenant activity.
-- Password reset routes are present and should be paired with a real mail provider in production.
-- Demo credentials must be changed or removed before deployment.
-- Production deployments should enforce HTTPS, strong secrets, backups, queue supervision, storage permissions, and `APP_DEBUG=false`.
+Production cache commands verified for this project:
 
-## Reports and Exports
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
 
-Elevanix supports CSV and PDF exports in multiple areas:
+## Project Structure
 
-- Super Admin revenue CSV/PDF exports.
-- Super Admin report CSV/PDF exports.
-- Company Admin report CSV/PDF exports.
-- Attendance CSV/PDF exports.
-- Work session CSV/PDF exports.
-- Invoice print views.
+```text
+app/Enums             Role enum values.
+app/Http/Controllers  Public, auth, Super Admin, Company Admin, Employee, and shared controllers.
+app/Http/Middleware   Role, permission, company approval, employee active, and subscription checks.
+app/Http/Requests     Form request validation for selected workflows.
+app/Models            Eloquent models for core domain records.
+app/Notifications     Mail and database notifications.
+app/Policies          Authorization policies for company-owned records.
+app/Services          Dashboard, attendance, calendar, invoice, report, task, timer, and audit logic.
+app/Support           Permission catalog and dashboard navigation helpers.
+database/migrations   Database schema.
+database/seeders      Permissions, system settings, subscription plans, Super Admin, and demo data.
+resources/views       Blade UI grouped by public, auth, role areas, reports, calendar, todos, and partials.
+public/assets         Active custom CSS and JavaScript used by the Blade layouts.
+tests                 Feature and unit tests.
+```
+
+## Security Features
+
+- Laravel authentication, password hashing, and CSRF protection.
+- Role middleware for `super_admin`, `company_admin`, and `employee`.
+- Company approval, employee active-status, and subscription middleware.
+- Direct permission middleware for selected employee access.
+- Laravel policies and company-aware checks for tenant-owned records.
+- Server-side validation in controllers and form requests.
+- File type and size validation for uploads.
+- Missing-file guards before downloads.
+- CSV export escaping to reduce spreadsheet formula injection risk.
+- Audit logs for important administrative and business actions.
+
+## Multi-Tenant Data Isolation
+
+Elevanix uses a shared database with tenant ownership through `company_id`. Operational records such as employees, clients, project requests, projects, tasks, work sessions, attendance, leave requests, files, payments, invoices, settings, notifications, and audit logs are scoped to the relevant company where applicable.
+
+Super Admin users have platform-level access. Company Admin users manage their own company. Employees are restricted to their company, assigned records, own records, and direct permissions granted by their Company Admin.
+
+Developers should not trust browser-submitted `company_id`, `user_id`, role, status, or ownership fields. Use the existing access helpers, middleware, policies, and services.
+
+## File Uploads and Storage
+
+Implemented uploads include company registration logos, company profile logos, user profile images, subscription payment proof files, Company Admin document uploads, Company Admin task attachments, and Employee task attachments.
+
+Work files are stored under company-specific paths such as `work-files/{companyId}` on the public disk.
+
+## Notifications
+
+Implemented notifications include company registration received/approved/rejected, task assignment/update/review style notifications, task due reminders, leave request approval/rejection, company event notifications, and subscription change status notifications.
+
+The project uses mail and database notification channels. It does not implement realtime WebSocket notifications.
+
+## PDF / Export Features
 
 PDF generation uses `barryvdh/laravel-dompdf`.
 
-## Frontend and Design
+Implemented export/print areas include Super Admin revenue CSV/PDF, Super Admin reports CSV/PDF, Company Admin reports CSV/PDF, Company Admin attendance CSV/PDF, Company Admin work sessions CSV/PDF, Employee attendance CSV/PDF, Employee work sessions CSV/PDF, and Company Admin invoice print views.
 
-The user interface is built with Blade views and custom dashboard layouts for public pages, authentication, Super Admin, Company Admin, and Employee areas.
+The codebase does not include XLSX export support.
 
-The active Blade layouts load:
+## Development Notes
 
-- Poppins from Google Fonts
-- Bootstrap 5.3.3
-- Font Awesome 6.5.2
-- SweetAlert2
-- Chart.js
-- `public/assets/css/app.css`
-- `public/assets/js/app.js`
+- Reuse the existing `users` table for all authenticated roles.
+- Keep company-owned records tenant-scoped through `company_id`.
+- Use the existing permission catalog and `permission_user` pivot table for direct employee permissions.
+- Reuse services such as `TaskWorkflowService`, `WorkTimerService`, `AttendanceService`, `CalendarService`, `InvoiceCalculator`, and `ProjectProgressService`.
+- Keep Bootstrap and `public/assets` as the active UI layer unless the frontend is intentionally migrated.
+- Prefer non-destructive setup commands for normal installation.
 
-The repository also contains Vite/Tailwind tooling. The Vite config references `resources/css/app.css` and `resources/js/app.js`, and `npm run build` compiles the Vite bundle.
+## Deployment Checklist
+
+- Set `APP_ENV=production` and `APP_DEBUG=false`.
+- Configure `APP_URL` with HTTPS.
+- Configure database, mail, queue, and scheduler settings.
+- Run migrations.
+- Run seeders only when appropriate for the target environment.
+- Create the storage link if public uploads are used.
+- Ensure `storage` and `bootstrap/cache` are writable.
+- Build assets with `npm run build`.
+- Cache config, routes, and views after environment configuration is final.
+- Remove or rotate demo credentials.
+- Never commit `.env`, `APP_KEY`, database credentials, mail credentials, or private service secrets.
 
 ## Troubleshooting
 
-### `APP_KEY` Missing
+- Missing `APP_KEY`: run `php artisan key:generate`.
+- Database connection fails: check `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`; make sure the database exists before migrations.
+- Uploaded files or images are not visible: run `php artisan storage:link`.
+- Old routes, config, or views remain after changes: run `php artisan optimize:clear`.
+- Queued jobs or notifications are not processing: run `php artisan queue:work`.
+- Scheduled task due reminders are not running locally: run `php artisan schedule:work`.
+- PowerShell blocks `npm run build`: run `npm.cmd run build`.
+- Vite may warn that optional optimized font fallbacks need the `fontaine` package. The production build can still complete without it.
 
-Run:
+## Future / Optional Enhancements
 
-```bash
-php artisan key:generate
-```
+- Client portal.
+- Payment gateway integration.
+- Two-factor authentication.
+- Recurring company events.
+- Advanced notification preferences.
+- Additional accounting features.
+- Advanced analytics dashboards.
+- Browser-based end-to-end tests for critical workflows.
+- Production backup, restore, and monitoring documentation.
 
-### Database Connection Fails
+## License / Academic Note
 
-Check `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`. Make sure the database exists before running migrations.
+Elevanix was developed as a software engineering project demonstrating SaaS-based multi-company operations, role-based access, project/workforce management, finance tracking, reporting, and audit visibility.
 
-### Public Uploads Do Not Load
-
-Run:
-
-```bash
-php artisan storage:link
-```
-
-Then confirm the web server can read `public/storage`.
-
-### Queued Work Does Not Run
-
-Start a queue worker:
-
-```bash
-php artisan queue:work
-```
-
-For production, supervise the worker with the hosting platform or a process manager.
-
-### Mail Does Not Send
-
-Configure a real mail provider in `.env`. The repository does not define a custom `mail:test` command; use Laravel's configured mail/notification flows or write a small local verification route/command if needed during development.
-
-### Build Warnings
-
-`npm run build` may warn that the optional `fontaine` package is not installed for optimized font fallbacks. The build can still complete successfully.
-
-## Future Improvements
-
-Potential next steps:
-
-- Add a production deployment guide.
-- Add scheduler registration for automatic attendance absence marking.
-- Add stronger subscription renewal and billing automation.
-- Add more granular report filters and analytics dashboards.
-- Add browser-based end-to-end tests for critical workflows.
-- Add API endpoints if mobile or external integrations are required.
-- Add a formal top-level license file.
-- Add backup, restore, and operational monitoring documentation.
-
-## Project Status
-
-Elevanix is an active academic/portfolio SaaS project with the main platform, tenant, and employee workflows implemented. Local verification currently passes migrations, route discovery, asset build, and automated tests. Production use would still require deployment hardening, real mail/queue/storage configuration, secret rotation, and operational monitoring.
-
-## Author and License
-
-This project is developed as a BEng (Hons) Software Engineering final-year project.
-
-No standalone top-level `LICENSE` file is currently present in this repository. Add a formal license before public distribution or open-source release.
+Composer metadata currently lists the Laravel skeleton MIT license, but this repository does not include a standalone top-level `LICENSE` file. Confirm licensing before public distribution or open-source release.

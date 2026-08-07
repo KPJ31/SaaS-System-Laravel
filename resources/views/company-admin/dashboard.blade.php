@@ -4,66 +4,63 @@
 
 @section('content')
 @include('partials.page-header', [
+    'breadcrumbs' => [
+        ['label' => 'Dashboard'],
+    ],
     'eyebrow' => auth()->user()->company->name,
     'title' => 'Welcome back, '.auth()->user()->name.'.',
-    'description' => 'Review employees, clients, project delivery, payments, invoices and recent activity for your company.',
+    'description' => 'Track today\'s team activity, client work, pending reviews and delivery risk across your company.',
 ])
 
-<div class="stat-grid">
-    @include('partials.stat-card', ['label' => 'Clients', 'value' => $clientsCount, 'icon' => 'fa-handshake'])
-    @include('partials.stat-card', ['label' => 'Employees', 'value' => $employeesCount, 'icon' => 'fa-users', 'tone' => 'blue'])
-    @include('partials.stat-card', ['label' => 'With Extra Permissions', 'value' => $employeesWithPermissionsCount, 'icon' => 'fa-shield-halved', 'tone' => 'green'])
-    @include('partials.stat-card', ['label' => 'No Extra Permissions', 'value' => $employeesWithoutPermissionsCount, 'icon' => 'fa-user-lock', 'tone' => 'yellow'])
-    @include('partials.stat-card', ['label' => 'Projects', 'value' => $projectsCount, 'icon' => 'fa-diagram-project', 'tone' => 'green'])
-    @include('partials.stat-card', ['label' => 'Tasks', 'value' => $tasksCount, 'icon' => 'fa-list-check', 'tone' => 'yellow'])
-    @include('partials.stat-card', ['label' => 'Pending Requests', 'value' => $pendingRequestsCount, 'icon' => 'fa-inbox', 'tone' => 'yellow'])
-    @include('partials.stat-card', ['label' => 'Pending Leave', 'value' => $pendingLeavesCount, 'icon' => 'fa-calendar-check', 'tone' => 'yellow'])
-    @include('partials.stat-card', ['label' => 'Overdue Tasks', 'value' => $overdueTasksCount, 'icon' => 'fa-triangle-exclamation'])
-    @include('partials.stat-card', ['label' => 'Today Hours', 'value' => number_format($todayWorkMinutes / 60, 1), 'icon' => 'fa-clock', 'tone' => 'blue'])
-    @include('partials.stat-card', ['label' => 'Week Hours', 'value' => number_format($weekWorkMinutes / 60, 1), 'icon' => 'fa-calendar-week', 'tone' => 'blue'])
-    @include('partials.stat-card', ['label' => 'Monthly Revenue', 'value' => '$'.number_format($monthlyRevenue, 2), 'icon' => 'fa-money-bill-trend-up', 'tone' => 'green'])
-    @include('partials.stat-card', ['label' => 'Total Revenue', 'value' => '$'.number_format($totalRevenue, 2), 'icon' => 'fa-sack-dollar', 'tone' => 'green'])
-    @include('partials.stat-card', ['label' => 'Current Plan', 'value' => $currentSubscription?->plan?->name ?? 'None', 'icon' => 'fa-credit-card', 'tone' => 'blue'])
-    @include('partials.stat-card', ['label' => 'Pending Plan Changes', 'value' => $pendingPlanChangesCount, 'icon' => 'fa-code-compare', 'tone' => 'yellow'])
+<div class="stat-grid mb-3">
+    @foreach($primaryKpis as $card)
+        @include('partials.stat-card', $card)
+    @endforeach
 </div>
 
-<div class="content-card mb-3">
-    <div class="page-header mb-0">
-        <div class="page-header-copy">
-            <span>Quick Actions</span>
-            <h1>Common Workflows</h1>
-        </div>
-        <div class="page-header-actions">
-            <a class="btn btn-primary" href="{{ route('company-admin.employees.create') }}"><i class="fa-solid fa-user-plus"></i>Add employee</a>
-            <a class="btn btn-outline-primary" href="{{ route('company-admin.employees.permissions.index') }}"><i class="fa-solid fa-shield-halved"></i>Manage Employee Permissions</a>
-            <a class="btn btn-outline-primary" href="{{ route('company-admin.clients.create') }}"><i class="fa-solid fa-handshake"></i>Add client</a>
-            <a class="btn btn-outline-primary" href="{{ route('company-admin.projects.create') }}"><i class="fa-solid fa-diagram-project"></i>Create project</a>
-            <a class="btn btn-outline-primary" href="{{ route('company-admin.tasks.create') }}"><i class="fa-solid fa-list-check"></i>Create task</a>
-            <a class="btn btn-outline-primary" href="{{ route('company-admin.payments.create') }}"><i class="fa-solid fa-credit-card"></i>Payment request</a>
-            <a class="btn btn-outline-primary" href="{{ route('company-admin.subscription.index') }}"><i class="fa-solid fa-code-compare"></i>Change plan</a>
-            <a class="btn btn-outline-primary" href="{{ route('company-admin.reports.index') }}"><i class="fa-solid fa-chart-pie"></i>Reports</a>
-        </div>
-    </div>
+<div class="stat-grid mb-3">
+    @foreach($secondaryKpis as $card)
+        @include('partials.stat-card', $card)
+    @endforeach
 </div>
 
 <div class="content-grid mb-3">
     <section class="content-card">
-        <div class="content-card-header"><div><h2>Permission Modules</h2><p>Most assigned employee permission groups.</p></div></div>
-        <div class="activity-list">
-            @forelse($topPermissionModules as $module)
-                <div><strong>{{ str_replace('-', ' ', ucfirst($module->module)) }}</strong><span>{{ $module->total }} assigned permissions</span></div>
-            @empty
-                @include('partials.empty-state', ['icon' => 'fa-shield-halved', 'title' => 'No extra permissions', 'message' => 'Assigned employee permissions will appear here.'])
-            @endforelse
+        <div class="content-card-header">
+            <div>
+                <h2>Finance Snapshot</h2>
+                <p>Client invoices and project payment status for this company.</p>
+            </div>
+            <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.invoices.index') }}">
+                <i class="fa-solid fa-file-invoice-dollar"></i>Invoices
+            </a>
         </div>
+        <dl class="detail-list mt-3">
+            <dt>Revenue This Month</dt><dd>{{ $financeSnapshot['currency'] }} {{ number_format($financeSnapshot['month_revenue'], 2) }}</dd>
+            <dt>Unpaid Balance</dt><dd>{{ $financeSnapshot['currency'] }} {{ number_format($financeSnapshot['unpaid_balance'], 2) }}</dd>
+            <dt>Overdue Invoices</dt><dd>{{ $financeSnapshot['overdue_invoices'] }}</dd>
+            <dt>Pending Payment Proofs</dt><dd>{{ $financeSnapshot['pending_payment_proofs'] }}</dd>
+        </dl>
     </section>
+
     <section class="content-card">
-        <div class="content-card-header"><div><h2>Recent Permission Updates</h2><p>Latest changes made by company admins.</p></div></div>
+        <div class="content-card-header">
+            <div>
+                <h2>Recent Invoices</h2>
+                <p>Latest invoice balances and statuses.</p>
+            </div>
+            <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.payments.index') }}">
+                <i class="fa-solid fa-money-check-dollar"></i>Payments
+            </a>
+        </div>
         <div class="activity-list">
-            @forelse($recentPermissionUpdates as $activity)
-                <div><strong>{{ str_replace('_', ' ', $activity->action) }}</strong><span>{{ $activity->description }} | {{ $activity->created_at->diffForHumans() }}</span></div>
+            @forelse($financeSnapshot['recent_invoices'] as $invoice)
+                <div>
+                    <strong><a href="{{ route('company-admin.invoices.show', $invoice) }}">{{ $invoice->invoice_number }}</a></strong>
+                    <span>{{ $invoice->client?->name ?? '-' }} &middot; {{ $financeSnapshot['currency'] }} {{ number_format($invoice->balance_amount, 2) }} balance @include('partials.status-badge', ['status' => $invoice->status])</span>
+                </div>
             @empty
-                @include('partials.empty-state', ['icon' => 'fa-clipboard-list', 'title' => 'No permission updates', 'message' => 'Permission audit records will appear here.'])
+                @include('partials.empty-state', ['icon' => 'fa-file-invoice-dollar', 'title' => 'No invoices yet', 'message' => 'Recent invoices will appear here.'])
             @endforelse
         </div>
     </section>
@@ -71,29 +68,179 @@
 
 <div class="content-grid mb-3">
     <section class="content-card">
-        <div class="content-card-header"><div><h2>Project Status</h2><p>Distribution by current project state.</p></div></div>
-        <div class="dashboard-pie-wrapper chart-medium">
-            <canvas id="companyAdminProjectStatusChart" data-chart="companyProjectStatus" role="img" aria-label="Company project status distribution chart"></canvas>
+        <div class="content-card-header">
+            <div>
+                <h2>Task Status</h2>
+                <p>Grouped view of current company task flow.</p>
+            </div>
         </div>
-    </section>
-    <section class="content-card">
-        <div class="content-card-header"><div><h2>Task Status</h2><p>Delivery load across task workflow stages.</p></div></div>
         <div class="dashboard-pie-wrapper chart-medium">
             <canvas id="companyAdminTaskStatusChart" data-chart="companyTaskStatus" role="img" aria-label="Company task status distribution chart"></canvas>
         </div>
     </section>
-</div>
-<div class="content-grid mb-3">
+
     <section class="content-card">
-        <div class="content-card-header"><div><h2>Employee Work Hours</h2><p>This month by employee.</p></div></div>
-        <div class="dashboard-chart-wrapper chart-horizontal">
-            <canvas id="companyAdminEmployeeHoursChart" data-chart="companyEmployeeHours" role="img" aria-label="Employee work hours comparison chart"></canvas>
+        <div class="content-card-header">
+            <div>
+                <h2>Today's Attendance</h2>
+                <p>Attendance records for active employees today.</p>
+            </div>
+            <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.attendance.index') }}">
+                <i class="fa-solid fa-calendar-days"></i>Open
+            </a>
+        </div>
+        <div class="activity-list">
+            @foreach($attendance as $item)
+                <div>
+                    <strong>{{ $item['label'] }}</strong>
+                    <span>
+                        <span class="fw-semibold text-dark">{{ $item['value'] }}</span>
+                        @include('partials.status-badge', ['status' => $item['status']])
+                    </span>
+                </div>
+            @endforeach
         </div>
     </section>
+</div>
+
+<div class="content-grid mb-3">
     <section class="content-card">
-        <div class="content-card-header"><div><h2>Payment Status</h2><p>Client project payment distribution.</p></div></div>
+        <div class="content-card-header">
+            <div>
+                <h2>Team Workload</h2>
+                <p>Active task assignments across employees.</p>
+            </div>
+            <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.employees.index') }}">
+                <i class="fa-solid fa-users"></i>Employees
+            </a>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Open</th>
+                        <th>In Progress</th>
+                        <th>Overdue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($teamWorkload as $employee)
+                        <tr>
+                            <td>
+                                <a class="fw-semibold" href="{{ route('company-admin.employees.show', $employee) }}">{{ $employee->name }}</a>
+                                <small>{{ $employee->job_title ?? $employee->email }}</small>
+                            </td>
+                            <td>{{ $employee->open_tasks_count }}</td>
+                            <td>{{ $employee->in_progress_tasks_count }}</td>
+                            <td>{{ $employee->overdue_tasks_count }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="empty-cell">
+                                @include('partials.empty-state', ['icon' => 'fa-users', 'title' => 'No active workload', 'message' => 'Open employee task assignments will appear here.'])
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="content-card">
+        <div class="content-card-header">
+            <div>
+                <h2>Upcoming Deadlines</h2>
+                <p>Tasks and projects due within the next 14 days.</p>
+            </div>
+        </div>
+        <div class="activity-list">
+            @forelse($upcomingDeadlines as $deadline)
+                <div>
+                    <strong>
+                        <a href="{{ $deadline['url'] }}">{{ $deadline['title'] }}</a>
+                    </strong>
+                    <span>
+                        {{ $deadline['type'] }}@if($deadline['context']) &middot; {{ $deadline['context'] }}@endif
+                        &middot; {{ $deadline['assignee'] }}
+                        &middot; {{ $deadline['due_date']->format('Y-m-d') }}
+                        @include('partials.status-badge', ['status' => $deadline['status']])
+                    </span>
+                </div>
+            @empty
+                @include('partials.empty-state', ['icon' => 'fa-calendar-check', 'title' => 'No near deadlines', 'message' => 'Deadlines due in the next two weeks will appear here.'])
+            @endforelse
+        </div>
+    </section>
+</div>
+
+<div class="content-grid mb-3">
+    <section class="content-card">
+        <div class="content-card-header">
+            <div>
+                <h2>Needs Attention</h2>
+                <p>Operational items that may require review.</p>
+            </div>
+        </div>
+        <div class="activity-list">
+            @foreach($pendingActions as $pendingAction)
+                <div>
+                    <strong><i class="fa-solid {{ $pendingAction['icon'] }} me-1" aria-hidden="true"></i>{{ $pendingAction['label'] }}</strong>
+                    <span>
+                        <span class="fw-semibold text-dark">{{ $pendingAction['count'] }}</span>
+                        <a href="{{ $pendingAction['url'] }}">Review</a>
+                    </span>
+                </div>
+            @endforeach
+        </div>
+    </section>
+
+    <section class="content-card">
+        <div class="content-card-header">
+            <div>
+                <h2>Recent Activity</h2>
+                <p>Latest important actions in this company workspace.</p>
+            </div>
+            <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.activity-logs.index') }}">
+                <i class="fa-solid fa-clipboard-list"></i>Activity
+            </a>
+        </div>
+        <div class="activity-list">
+            @forelse($recentActivity as $activity)
+                <div>
+                    <strong>{{ str((string) $activity->action)->replace('_', ' ')->headline() }}</strong>
+                    <span>{{ $activity->description }} &middot; {{ $activity->user?->name ?? 'System' }} &middot; {{ $activity->created_at->diffForHumans() }}</span>
+                </div>
+            @empty
+                @include('partials.empty-state', ['icon' => 'fa-clipboard-list', 'title' => 'No activity yet', 'message' => 'Company activity will appear here.'])
+            @endforelse
+        </div>
+    </section>
+</div>
+
+<div class="content-grid mb-3">
+    <section class="content-card">
+        <div class="content-card-header">
+            <div>
+                <h2>Project Status</h2>
+                <p>Current distribution of company projects.</p>
+            </div>
+        </div>
         <div class="dashboard-pie-wrapper chart-medium">
-            <canvas id="companyAdminPaymentStatusChart" data-chart="companyPaymentStatus" role="img" aria-label="Company payment status distribution chart"></canvas>
+            <canvas id="companyAdminProjectStatusChart" data-chart="companyProjectStatus" role="img" aria-label="Company project status distribution chart"></canvas>
+        </div>
+    </section>
+
+    <section class="content-card">
+        <div class="content-card-header">
+            <div>
+                <h2>Employee Work Hours</h2>
+                <p>Top logged employee hours this month.</p>
+            </div>
+            <span class="text-muted small">{{ $monthWorkHours }} total hours</span>
+        </div>
+        <div class="dashboard-chart-wrapper chart-horizontal">
+            <canvas id="companyAdminEmployeeHoursChart" data-chart="companyEmployeeHours" role="img" aria-label="Employee work hours comparison chart"></canvas>
         </div>
     </section>
 </div>
@@ -102,21 +249,25 @@
     <section class="content-card">
         <div class="content-card-header">
             <div>
-                <h2>Recent Projects</h2>
-                <p>Latest company projects with client context and progress.</p>
+                <h2>Recently Added Employees</h2>
+                <p>Newest team members in this company.</p>
             </div>
+            <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.employees.create') }}">
+                <i class="fa-solid fa-user-plus"></i>Add
+            </a>
         </div>
-        <div class="project-list">
-            @forelse($projects as $project)
-                <article>
-                    <strong>{{ $project->name }}</strong>
-                    <span>{{ $project->client?->name ?? 'Internal' }}</span>
-                    <div class="progress">
-                        <div class="progress-bar" style="width: {{ $project->progress }}%"></div>
-                    </div>
-                </article>
+        <div class="activity-list">
+            @forelse($recentEmployees as $employee)
+                <div>
+                    <strong><a href="{{ route('company-admin.employees.show', $employee) }}">{{ $employee->name }}</a></strong>
+                    <span>
+                        {{ $employee->job_title ?? $employee->email }}
+                        &middot; {{ $employee->join_date?->format('Y-m-d') ?? $employee->created_at->format('Y-m-d') }}
+                        @include('partials.status-badge', ['status' => $employee->status])
+                    </span>
+                </div>
             @empty
-                @include('partials.empty-state', ['icon' => 'fa-diagram-project', 'title' => 'No projects yet', 'message' => 'Projects created for this company will appear here.'])
+                @include('partials.empty-state', ['icon' => 'fa-users', 'title' => 'No employees yet', 'message' => 'New employees will appear here.'])
             @endforelse
         </div>
     </section>
@@ -124,83 +275,26 @@
     <section class="content-card">
         <div class="content-card-header">
             <div>
-                <h2>Latest Tasks</h2>
-                <p>Recently created tasks across active company projects.</p>
+                <h2>Recent Clients</h2>
+                <p>Newest client records and project context.</p>
             </div>
+            <a class="btn btn-sm btn-outline-primary" href="{{ route('company-admin.clients.create') }}">
+                <i class="fa-solid fa-plus"></i>Add
+            </a>
         </div>
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>Task</th>
-                        <th>Assignee</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($tasks as $task)
-                        <tr>
-                            <td>{{ $task->title }}<small>{{ $task->project->name }}</small></td>
-                            <td>{{ $task->assignee?->name ?? 'Unassigned' }}</td>
-                            <td>@include('partials.status-badge', ['status' => $task->status])</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="3" class="empty-cell">@include('partials.empty-state', ['icon' => 'fa-list-check', 'title' => 'No tasks yet', 'message' => 'Assigned and unassigned tasks will appear here.'])</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </section>
-</div>
-
-<div class="content-grid mt-3">
-    <section class="content-card">
-        <div class="content-card-header"><div><h2>Recent Leave Requests</h2><p>Latest employee leave activity.</p></div></div>
-        <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Employee</th><th>Dates</th><th>Status</th></tr></thead><tbody>@forelse($leaveRequests as $leave)<tr><td>{{ $leave->user?->name }}</td><td>{{ $leave->start_date->format('M d') }} - {{ $leave->end_date->format('M d') }}</td><td>@include('partials.status-badge', ['status' => $leave->status])</td></tr>@empty<tr><td colspan="3" class="empty-cell">@include('partials.empty-state', ['icon' => 'fa-calendar-check', 'title' => 'No leave requests', 'message' => 'Leave requests will appear here.'])</td></tr>@endforelse</tbody></table></div>
-    </section>
-    <section class="content-card">
-        <div class="content-card-header"><div><h2>Latest Activities</h2><p>Recent company audit records.</p></div></div>
-        <div class="activity-list">@forelse($latestActivities as $activity)<div><strong>{{ str_replace('_', ' ', $activity->action) }}</strong><span>{{ $activity->description }}</span></div>@empty @include('partials.empty-state', ['icon' => 'fa-clipboard-list', 'title' => 'No activity', 'message' => 'Company activity appears here.']) @endforelse</div>
-    </section>
-</div>
-
-<div class="content-grid mt-3">
-    <section class="content-card">
-        <div class="content-card-header"><div><h2>Recent Project Requests</h2><p>Newest requests waiting for review or conversion.</p></div></div>
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead><tr><th>Request</th><th>Client</th><th>Status</th></tr></thead>
-                <tbody>
-                    @forelse($projectRequests as $requestItem)
-                        <tr>
-                            <td>{{ $requestItem->title }}<small>{{ $requestItem->service_type ?? 'General' }}</small></td>
-                            <td>{{ $requestItem->client?->name ?? 'No client' }}</td>
-                            <td>@include('partials.status-badge', ['status' => $requestItem->status])</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="3" class="empty-cell">No project requests yet.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </section>
-    <section class="content-card">
-        <div class="content-card-header"><div><h2>Recent Payments</h2><p>Latest client project payment records.</p></div></div>
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead><tr><th>Client</th><th>Amount</th><th>Status</th></tr></thead>
-                <tbody>
-                    @forelse($payments as $payment)
-                        <tr>
-                            <td>{{ $payment->client?->name ?? 'Client payment' }}<small>{{ $payment->project?->name }}</small></td>
-                            <td>${{ number_format($payment->amount, 2) }}</td>
-                            <td>@include('partials.status-badge', ['status' => $payment->status])</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="3" class="empty-cell">No payments yet.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div class="activity-list">
+            @forelse($recentClients as $client)
+                <div>
+                    <strong><a href="{{ route('company-admin.clients.show', $client) }}">{{ $client->name }}</a></strong>
+                    <span>
+                        {{ $client->email ?? $client->company_name ?? 'No contact set' }}
+                        &middot; {{ $client->projects_count }} projects
+                        @include('partials.status-badge', ['status' => $client->status])
+                    </span>
+                </div>
+            @empty
+                @include('partials.empty-state', ['icon' => 'fa-handshake', 'title' => 'No clients yet', 'message' => 'Client records will appear here.'])
+            @endforelse
         </div>
     </section>
 </div>

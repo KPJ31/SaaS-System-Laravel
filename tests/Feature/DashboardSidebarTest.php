@@ -73,7 +73,8 @@ test('super admin sees only super admin sidebar', function () {
         ->assertSee('Super Admin')
         ->assertSee('sidebar-account-card', false)
         ->assertDontSee('sidebar-brand', false)
-        ->assertSee('Platform Management')
+        ->assertSee('Platform')
+        ->assertSee('Company Requests')
         ->assertSee('System Settings')
         ->assertDontSee('Employee Permissions')
         ->assertDontSee('My Work');
@@ -90,9 +91,11 @@ test('company admin sees only company admin sidebar', function () {
         ->assertSee('Company Admin')
         ->assertSee('sidebar-account-card', false)
         ->assertDontSee('sidebar-brand', false)
-        ->assertSee('Organization')
+        ->assertSee('Main')
+        ->assertSee('Company')
+        ->assertSee('People')
         ->assertSee('Employee Permissions')
-        ->assertDontSee('Platform Management')
+        ->assertDontSee('Company Requests')
         ->assertDontSee('System Settings');
 });
 
@@ -112,7 +115,7 @@ test('employee sees base employee sidebar', function () {
         ->assertSee('My Projects')
         ->assertSee('My Tasks')
         ->assertDontSee('Employee Permissions')
-        ->assertDontSee('Platform Management');
+        ->assertDontSee('Company Requests');
 });
 
 test('employee sees and loses extra module after permission changes', function () {

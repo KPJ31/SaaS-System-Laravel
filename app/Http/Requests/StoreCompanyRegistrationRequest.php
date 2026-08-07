@@ -3,9 +3,24 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 
 class StoreCompanyRegistrationRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'company_name' => trim((string) $this->input('company_name')),
+            'company_email' => Str::lower(trim((string) $this->input('company_email'))),
+            'company_phone' => trim((string) $this->input('company_phone')),
+            'company_address' => trim((string) $this->input('company_address')),
+            'website' => filled($this->input('website')) ? trim((string) $this->input('website')) : null,
+            'admin_name' => trim((string) $this->input('admin_name')),
+            'admin_email' => Str::lower(trim((string) $this->input('admin_email'))),
+            'username' => Str::lower(trim((string) $this->input('username'))),
+        ]);
+    }
+
     public function rules(): array
     {
         return [

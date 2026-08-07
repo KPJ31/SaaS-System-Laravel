@@ -4,6 +4,8 @@ namespace App\Http\Controllers\CompanyAdmin;
 
 use App\Http\Controllers\CompanyAdmin\Concerns\HandlesCompanyAccess;
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
+use App\Models\Client;
 use App\Models\Project;
 use App\Models\ProjectRequest;
 use App\Services\AuditLogger;
@@ -18,22 +20,51 @@ class ProjectRequestController extends Controller
 
     public function index(Request $request): View
     {
-        $projectRequests = ProjectRequest::with('client')
+        $this->authorizeFilters($request);
+
+        $baseQuery = ProjectRequest::where('company_id', $this->companyId());
+
+        $projectRequests = ProjectRequest::with(['client', 'convertedProject'])
             ->where('company_id', $this->companyId())
-            ->when($request->search, fn ($query, $search) => $query->where('title', 'like', "%{$search}%"))
+            ->when($request->search, fn ($query, $search) => $query->where(fn ($q) => $q
+                ->where('title', 'like', "%{$search}%")
+                ->orWhere('service_type', 'like', "%{$search}%")
+                ->orWhereHas('client', fn ($client) => $client->where('name', 'like', "%{$search}%")->orWhere('company_name', 'like', "%{$search}%"))))
             ->when($request->status, fn ($query, $status) => $query->where('status', $status))
+            ->when($request->client_id, fn ($query, $clientId) => $query->where('client_id', $clientId))
+            ->when($request->date_from, fn ($query, $date) => $query->whereDate('created_at', '>=', $date))
+            ->when($request->date_to, fn ($query, $date) => $query->whereDate('created_at', '<=', $date))
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        return view('company-admin.project-requests.index', compact('projectRequests'));
+        return view('company-admin.project-requests.index', [
+            'projectRequests' => $projectRequests,
+            'clients' => Client::where('company_id', $this->companyId())->orderBy('name')->get(['id', 'name', 'company_name']),
+            'summary' => [
+                'pending' => (clone $baseQuery)->where('status', 'pending')->count(),
+                'under_review' => (clone $baseQuery)->where('status', 'under_review')->count(),
+                'approved' => (clone $baseQuery)->where('status', 'approved')->count(),
+                'converted' => (clone $baseQuery)->where('status', 'converted_to_project')->count(),
+            ],
+        ]);
     }
 
     public function show(ProjectRequest $projectRequest): View
     {
         $this->abortUnlessCompanyRecord($projectRequest);
 
-        return view('company-admin.project-requests.show', ['projectRequest' => $projectRequest->load(['client', 'creator', 'approver'])]);
+        return view('company-admin.project-requests.show', [
+            'projectRequest' => $projectRequest->load(['client', 'creator', 'approver', 'convertedProject']),
+            'activityLogs' => AuditLog::with('user')
+                ->where('company_id', $this->companyId())
+                ->where('auditable_type', ProjectRequest::class)
+                ->where('auditable_id', $projectRequest->id)
+                ->latest()
+                ->take(8)
+                ->get(),
+            'validStatuses' => $this->validNextStatuses($projectRequest->status),
+        ]);
     }
 
     public function update(Request $request, ProjectRequest $projectRequest): RedirectResponse
@@ -41,7 +72,7 @@ class ProjectRequestController extends Controller
         $this->abortUnlessCompanyRecord($projectRequest);
 
         $data = $request->validate([
-            'status' => ['required', 'in:draft,pending,under_review,approved,rejected,payment_requested,payment_confirmed,converted_to_project,cancelled'],
+            'status' => ['required', 'in:draft,pending,under_review,approved,rejected,payment_requested,payment_confirmed,cancelled'],
             'admin_note' => ['nullable', 'string', 'max:3000'],
         ]);
 
@@ -91,7 +122,8 @@ class ProjectRequestController extends Controller
     {
         $this->abortUnlessCompanyRecord($projectRequest);
         abort_unless(in_array($projectRequest->status, ['approved', 'payment_confirmed'], true), 422);
-        abort_if($projectRequest->converted_project_id, 422, 'This request has already been converted to a project.');
+        abort_if($projectRequest->converted_project_id || $projectRequest->convertedProject()->exists(), 422, 'This request has already been converted to a project.');
+        abort_if(Project::where('company_id', $this->companyId())->where('project_request_id', $projectRequest->id)->exists(), 422, 'This request has already been converted to a project.');
 
         if ($this->subscriptionLimitReached('project_limit', Project::class)) {
             return back()->with('error', $this->limitMessage());
@@ -130,10 +162,30 @@ class ProjectRequestController extends Controller
             'draft' => $newStatus === 'pending',
             'pending' => in_array($newStatus, ['under_review', 'approved', 'rejected', 'cancelled'], true),
             'under_review' => in_array($newStatus, ['approved', 'rejected'], true),
-            'approved' => in_array($newStatus, ['payment_requested', 'converted_to_project'], true),
+            'approved' => $newStatus === 'payment_requested',
             'payment_requested' => $newStatus === 'payment_confirmed',
-            'payment_confirmed' => $newStatus === 'converted_to_project',
+            'payment_confirmed' => false,
             default => false,
         };
+    }
+
+    private function validNextStatuses(string $currentStatus): array
+    {
+        return match ($currentStatus) {
+            'draft' => ['pending'],
+            'pending' => ['under_review', 'approved', 'rejected', 'cancelled'],
+            'under_review' => ['approved', 'rejected'],
+            'approved' => ['payment_requested'],
+            'payment_requested' => ['payment_confirmed'],
+            'payment_confirmed' => [],
+            default => [],
+        };
+    }
+
+    private function authorizeFilters(Request $request): void
+    {
+        if ($request->filled('client_id')) {
+            abort_unless(Client::where('company_id', $this->companyId())->whereKey($request->integer('client_id'))->exists(), 403);
+        }
     }
 }

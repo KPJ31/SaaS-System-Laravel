@@ -7,7 +7,11 @@ use App\Http\Controllers\Employee\Concerns\HandlesEmployeeAccess;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\WorkSession;
+use App\Services\AuditLogger;
+use App\Services\WorkTimerService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -33,6 +37,43 @@ class WorkSessionController extends Controller
             'weeklyTotal' => (clone $base)->whereBetween('started_at', [now()->startOfWeek(), now()->endOfWeek()])->sum('duration_minutes'),
             'monthlyTotal' => (clone $base)->whereMonth('started_at', now()->month)->whereYear('started_at', now()->year)->sum('duration_minutes'),
         ]);
+    }
+
+    public function store(Request $request, WorkTimerService $timer, AuditLogger $logger): RedirectResponse
+    {
+        $data = $request->validate([
+            'project_id' => ['required', 'integer'],
+            'task_id' => ['nullable', 'integer'],
+            'started_at' => ['required', 'date', 'before_or_equal:now'],
+            'ended_at' => ['required', 'date', 'after:started_at', 'before_or_equal:now'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $project = Project::where('company_id', $this->companyId())
+            ->whereKey($data['project_id'])
+            ->whereHas('tasks', fn ($query) => $query->where('assignee_id', auth()->id()))
+            ->firstOrFail();
+
+        $task = null;
+        if (! empty($data['task_id'])) {
+            $task = Task::where('company_id', $this->companyId())
+                ->where('assignee_id', auth()->id())
+                ->whereKey($data['task_id'])
+                ->firstOrFail();
+        }
+
+        $session = $timer->createManual(
+            auth()->user(),
+            $project,
+            $task,
+            Carbon::parse($data['started_at']),
+            Carbon::parse($data['ended_at']),
+            $data['notes'] ?? null
+        );
+
+        $logger->record('manual_work_session_submitted', 'Manual work session submitted.', auth()->user(), $session, $this->companyId(), request: $request);
+
+        return back()->with('success', 'Manual work log submitted for review.');
     }
 
     public function export(Request $request): StreamedResponse
@@ -68,6 +109,7 @@ class WorkSessionController extends Controller
             ->where('company_id', $this->companyId())
             ->where('user_id', auth()->id())
             ->when($request->search, fn ($query, $search) => $query->where('notes', 'like', "%{$search}%"))
+            ->when($request->status, fn ($query, $status) => $query->where('status', $status))
             ->when($request->project_id, fn ($query, $id) => $query->where('project_id', $id))
             ->when($request->task_id, fn ($query, $id) => $query->where('task_id', $id))
             ->when($request->date, fn ($query, $date) => $query->whereDate('started_at', $date));
@@ -75,7 +117,7 @@ class WorkSessionController extends Controller
 
     private function headers(): array
     {
-        return ['Date', 'Project', 'Task', 'Start', 'Stop', 'Duration Minutes', 'Note', 'Status'];
+        return ['Date', 'Project', 'Task', 'Start', 'Stop', 'Duration Minutes', 'Note', 'Status', 'Source', 'Approval'];
     }
 
     private function rows($sessions)
@@ -89,6 +131,8 @@ class WorkSessionController extends Controller
             $session->duration_minutes,
             $session->notes ?? '-',
             $session->status,
+            $session->is_manual ? 'Manual' : 'Timer',
+            $session->approval_status ?? '-',
         ]);
     }
 
@@ -109,7 +153,7 @@ class WorkSessionController extends Controller
 
     private function activeFilters(Request $request): array
     {
-        return collect($request->only(['search', 'project_id', 'task_id', 'date']))
+        return collect($request->only(['search', 'project_id', 'task_id', 'date', 'status']))
             ->filter(fn ($value) => filled($value))
             ->mapWithKeys(fn ($value, $key) => [str_replace('_', ' ', ucfirst($key)) => (string) $value])
             ->all();
@@ -117,6 +161,8 @@ class WorkSessionController extends Controller
 
     private function authorizeFilters(Request $request): void
     {
+        abort_unless(! $request->filled('status') || in_array($request->status, ['running', 'stopped', 'adjusted'], true), 404);
+
         if ($request->filled('project_id')) {
             abort_unless(Project::where('company_id', $this->companyId())
                 ->whereKey($request->integer('project_id'))

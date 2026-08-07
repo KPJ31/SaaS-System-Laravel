@@ -4,9 +4,11 @@ namespace App\Http\Controllers\CompanyAdmin;
 
 use App\Http\Controllers\CompanyAdmin\Concerns\HandlesCompanyAccess;
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CompanyProfileController extends Controller
@@ -37,8 +39,8 @@ class CompanyProfileController extends Controller
             'website' => ['nullable', 'url', 'max:255'],
             'business_type' => ['nullable', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:3000'],
-            'timezone' => ['required', 'string', 'max:80'],
-            'date_format' => ['required', 'string', 'max:30'],
+            'timezone' => ['required', 'timezone'],
+            'date_format' => ['required', Rule::in(['Y-m-d', 'd/m/Y', 'm/d/Y', 'd M Y', 'M d, Y'])],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
@@ -52,6 +54,18 @@ class CompanyProfileController extends Controller
 
         unset($data['logo']);
         $company->update($data);
+
+        AuditLog::create([
+            'company_id' => $this->companyId(),
+            'user_id' => auth()->id(),
+            'action' => 'company_profile_updated',
+            'module' => 'company-profile',
+            'auditable_type' => $company::class,
+            'auditable_id' => $company->id,
+            'description' => 'Company profile updated.',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return redirect()->route('company-admin.company-profile.show')->with('success', 'Company profile updated successfully.');
     }

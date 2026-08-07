@@ -18,6 +18,37 @@
 </div>
 
 <section class="content-card mb-3">
+    <div class="content-card-header">
+        <div>
+            <h2>Today</h2>
+            <p>{{ now($settings['timezone'])->format('l, M d, Y H:i') }} {{ $settings['timezone'] }}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            @if(! $todayAttendance)
+                <form method="POST" action="{{ route('employee.attendance.check-in') }}" data-loading-form>
+                    @csrf
+                    <button class="btn btn-primary" type="submit"><i class="fa-solid fa-right-to-bracket"></i>Check In</button>
+                </form>
+            @elseif(! $todayAttendance->check_out_time)
+                <form method="POST" action="{{ route('employee.attendance.check-out') }}" class="d-flex gap-2" data-loading-form>
+                    @csrf
+                    <input class="form-control" name="note" placeholder="Checkout note">
+                    <button class="btn btn-primary" type="submit"><i class="fa-solid fa-right-from-bracket"></i>Check Out</button>
+                </form>
+            @else
+                @include('partials.status-badge', ['status' => $todayAttendance->status])
+            @endif
+        </div>
+    </div>
+    <dl class="detail-list mt-3">
+        <dt>Work Window</dt><dd>{{ $settings['work_start_time'] }} - {{ $settings['work_end_time'] }}</dd>
+        <dt>Check In</dt><dd>{{ $todayAttendance?->check_in_time?->format('H:i') ?? '-' }}</dd>
+        <dt>Check Out</dt><dd>{{ $todayAttendance?->check_out_time?->format('H:i') ?? '-' }}</dd>
+        <dt>Net Time</dt><dd>{{ $todayAttendance?->net_work_minutes ?? 0 }} min</dd>
+    </dl>
+</section>
+
+<section class="content-card mb-3">
     <form class="row g-3 align-items-end" method="GET" action="{{ route('employee.attendance.index') }}">
         <div class="col-md-3"><label class="form-label">From</label><input class="form-control" type="date" name="date_from" value="{{ request('date_from') }}"></div>
         <div class="col-md-3"><label class="form-label">To</label><input class="form-control" type="date" name="date_to" value="{{ request('date_to') }}"></div>

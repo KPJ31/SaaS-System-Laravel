@@ -6,7 +6,7 @@
 @include('partials.page-header', [
     'eyebrow' => auth()->user()->company->name,
     'title' => 'My Workspace',
-    'description' => 'Your projects, tasks, timer, leave, notifications and performance in one place.',
+    'description' => 'Your projects, tasks, timer, leave, notifications and work summary in one place.',
     'actions' => new \Illuminate\Support\HtmlString('<a class="btn btn-primary" href="'.route('employee.tasks.index').'"><i class="fa-solid fa-list-check"></i>View tasks</a><a class="btn btn-outline-primary" href="'.route('employee.leave-requests.create').'"><i class="fa-solid fa-calendar-plus"></i>Request leave</a>')
 ])
 
@@ -82,7 +82,7 @@
         ['Week Hours', $stats['weekHours'], 'fa-calendar-week', 'green'],
         ['Month Hours', $stats['monthHours'], 'fa-calendar-days', 'green'],
         ['Pending Leave', $stats['pendingLeaves'], 'fa-calendar-check', 'yellow'],
-        ['Performance', $stats['performanceScore'] === null ? 'N/A' : $stats['performanceScore'].'%', 'fa-chart-line', 'blue'],
+        ['Task Completion', $stats['completionRate'] === null ? 'N/A' : $stats['completionRate'].'%', 'fa-chart-line', 'blue'],
     ] as $item)
         @include('partials.stat-card', ['label' => $item[0], 'value' => $item[1], 'icon' => $item[2], 'tone' => $item[3] ?? null])
     @endforeach

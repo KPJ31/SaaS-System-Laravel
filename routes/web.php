@@ -5,8 +5,10 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\CompanyAdmin\ActivityLogController as CompanyAdminActivityLogController;
 use App\Http\Controllers\CompanyAdmin\AttendanceController as CompanyAdminAttendanceController;
+use App\Http\Controllers\CompanyAdmin\CalendarController as CompanyAdminCalendarController;
 use App\Http\Controllers\CompanyAdmin\ClientController as CompanyAdminClientController;
 use App\Http\Controllers\CompanyAdmin\CompanyProfileController;
+use App\Http\Controllers\CompanyAdmin\CompanyEventController;
 use App\Http\Controllers\CompanyAdmin\DashboardController as CompanyAdminDashboardController;
 use App\Http\Controllers\CompanyAdmin\DocumentController as CompanyAdminDocumentController;
 use App\Http\Controllers\CompanyAdmin\EmployeeController;
@@ -28,6 +30,7 @@ use App\Http\Controllers\CompanyRegistrationController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\Employee\ActivityController as EmployeeActivityController;
 use App\Http\Controllers\Employee\AttendanceController as EmployeeAttendanceController;
+use App\Http\Controllers\Employee\CalendarController as EmployeeCalendarController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\DocumentController as EmployeeDocumentController;
 use App\Http\Controllers\Employee\LeaveRequestController as EmployeeLeaveRequestController;
@@ -38,6 +41,7 @@ use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
 use App\Http\Controllers\Employee\WorkSessionController as EmployeeWorkSessionController;
+use App\Http\Controllers\PersonalTodoController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\SuperAdmin\AuditLogController;
 use App\Http\Controllers\SuperAdmin\CompanyController;
@@ -128,6 +132,7 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->name('su
     Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 
@@ -144,6 +149,15 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->name('su
 
 Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscription.active'])->prefix('company-admin')->name('company-admin.')->group(function (): void {
     Route::get('/dashboard', CompanyAdminDashboardController::class)->name('dashboard');
+    Route::get('/calendar', [CompanyAdminCalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/events', [CompanyAdminCalendarController::class, 'events'])->name('calendar.events');
+    Route::get('/company-events', [CompanyEventController::class, 'index'])->name('company-events.index');
+    Route::get('/company-events/create', [CompanyEventController::class, 'create'])->name('company-events.create');
+    Route::post('/company-events', [CompanyEventController::class, 'store'])->name('company-events.store');
+    Route::get('/company-events/{companyEvent}', [CompanyEventController::class, 'show'])->name('company-events.show');
+    Route::get('/company-events/{companyEvent}/edit', [CompanyEventController::class, 'edit'])->name('company-events.edit');
+    Route::put('/company-events/{companyEvent}', [CompanyEventController::class, 'update'])->name('company-events.update');
+    Route::post('/company-events/{companyEvent}/cancel', [CompanyEventController::class, 'cancel'])->name('company-events.cancel');
 
     Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
     Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
@@ -180,11 +194,15 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
     Route::post('/projects/{project}/assign', [CompanyAdminProjectController::class, 'assignEmployee'])->name('projects.assign');
     Route::delete('/projects/{project}/employees/{employee}', [CompanyAdminProjectController::class, 'removeEmployee'])->name('projects.employees.destroy');
 
+    Route::get('/tasks/kanban', [CompanyAdminTaskController::class, 'kanban'])->name('tasks.kanban');
+    Route::patch('/tasks/{task}/move', [CompanyAdminTaskController::class, 'move'])->name('tasks.move');
     Route::resource('tasks', CompanyAdminTaskController::class);
-    Route::post('/tasks/{task}/{status}', [CompanyAdminTaskController::class, 'updateStatus'])->name('tasks.status');
     Route::patch('/tasks/{task}/review', [CompanyAdminTaskController::class, 'review'])->name('tasks.review');
     Route::post('/tasks/{task}/comments', [CompanyAdminTaskController::class, 'comment'])->name('tasks.comments.store');
     Route::post('/tasks/{task}/files', [CompanyAdminTaskController::class, 'upload'])->name('tasks.files.store');
+    Route::post('/tasks/{task}/{status}', [CompanyAdminTaskController::class, 'updateStatus'])
+        ->whereIn('status', ['todo', 'assigned', 'in_progress', 'paused', 'blocked', 'submitted', 'under_review', 'completed', 'cancelled'])
+        ->name('tasks.status');
     Route::get('/files/{file}/download', [CompanyAdminTaskController::class, 'download'])->name('files.download');
 
     Route::get('/work-sessions', [CompanyAdminWorkSessionController::class, 'index'])->name('work-sessions.index');
@@ -219,8 +237,15 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
     Route::post('/feedback/{feedback}/{status}', [CompanyAdminFeedbackController::class, 'updateStatus'])->name('feedback.status');
 
     Route::get('/notifications', [CompanyAdminNotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{notification}', [CompanyAdminNotificationController::class, 'open'])->name('notifications.open');
     Route::post('/notifications/{notification}/read', [CompanyAdminNotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [CompanyAdminNotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+
+    Route::get('/todos', [PersonalTodoController::class, 'index'])->name('todos.index');
+    Route::post('/todos', [PersonalTodoController::class, 'store'])->name('todos.store');
+    Route::patch('/todos/{todo}', [PersonalTodoController::class, 'update'])->name('todos.update');
+    Route::post('/todos/{todo}/complete', [PersonalTodoController::class, 'complete'])->name('todos.complete');
+    Route::delete('/todos/{todo}', [PersonalTodoController::class, 'destroy'])->name('todos.destroy');
 
     Route::get('/reports', [CompanyAdminReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/{report}', [CompanyAdminReportController::class, 'export'])->name('reports.export');
@@ -240,6 +265,8 @@ Route::middleware(['auth', 'role:company_admin', 'company.approved', 'subscripti
 
 Route::middleware(['auth', 'role:employee', 'employee.active', 'company.approved', 'subscription.active'])->prefix('employee')->name('employee.')->group(function (): void {
     Route::get('/dashboard', EmployeeDashboardController::class)->name('dashboard');
+    Route::get('/calendar', [EmployeeCalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/events', [EmployeeCalendarController::class, 'events'])->name('calendar.events');
     Route::get('/clients', [CompanyAdminClientController::class, 'index'])->middleware('permission:clients.view')->name('clients.index');
     Route::get('/clients/{client}', [CompanyAdminClientController::class, 'show'])->middleware('permission:clients.view')->name('clients.show');
     Route::get('/reports', [CompanyAdminReportController::class, 'index'])->middleware('permission:reports.view')->name('reports.index');
@@ -258,6 +285,7 @@ Route::middleware(['auth', 'role:employee', 'employee.active', 'company.approved
     Route::post('/tasks/{task}/files', [EmployeeTaskController::class, 'upload'])->name('tasks.files.store');
     Route::get('/files/{file}/download', [EmployeeTaskController::class, 'download'])->name('files.download');
     Route::get('/work-sessions', [EmployeeWorkSessionController::class, 'index'])->name('work-sessions.index');
+    Route::post('/work-sessions', [EmployeeWorkSessionController::class, 'store'])->name('work-sessions.store');
     Route::get('/work-sessions/export/csv', [EmployeeWorkSessionController::class, 'export'])->name('work-sessions.export');
     Route::get('/work-sessions/export/pdf', [EmployeeWorkSessionController::class, 'exportPdf'])->name('work-sessions.pdf');
     Route::get('/attendance', [EmployeeAttendanceController::class, 'index'])->name('attendance.index');
@@ -270,8 +298,14 @@ Route::middleware(['auth', 'role:employee', 'employee.active', 'company.approved
     Route::post('/leave-requests/{leaveRequest}/cancel', [EmployeeLeaveRequestController::class, 'cancel'])->name('leave-requests.cancel');
     Route::get('/performance', EmployeePerformanceController::class)->name('performance.index');
     Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{notification}', [EmployeeNotificationController::class, 'open'])->name('notifications.open');
     Route::post('/notifications/{notification}/read', [EmployeeNotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [EmployeeNotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::get('/todos', [PersonalTodoController::class, 'index'])->name('todos.index');
+    Route::post('/todos', [PersonalTodoController::class, 'store'])->name('todos.store');
+    Route::patch('/todos/{todo}', [PersonalTodoController::class, 'update'])->name('todos.update');
+    Route::post('/todos/{todo}/complete', [PersonalTodoController::class, 'complete'])->name('todos.complete');
+    Route::delete('/todos/{todo}', [PersonalTodoController::class, 'destroy'])->name('todos.destroy');
     Route::get('/activity-history', [EmployeeActivityController::class, 'index'])->name('activity.index');
     Route::get('/profile', [EmployeeProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [EmployeeProfileController::class, 'update'])->name('profile.update');

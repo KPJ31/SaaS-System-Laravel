@@ -56,6 +56,11 @@ class Project extends Model
         return $this->belongsTo(User::class, 'manager_id');
     }
 
+    public function projectRequest(): BelongsTo
+    {
+        return $this->belongsTo(ProjectRequest::class);
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->withTimestamps();

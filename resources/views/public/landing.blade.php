@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Elevanix - Smart Software Company Management System')
+@section('title', 'Elevanix | Smart Software Company Management')
 
 @section('content')
 <div class="landing-page" id="top">
@@ -17,14 +17,12 @@
             <nav id="landing-menu" class="landing-menu" data-landing-menu aria-label="Main navigation">
                 <a href="#top" class="is-active" data-nav-link aria-current="page">Home</a>
                 <a href="#features" data-nav-link>Features</a>
-                <a href="#modules" data-nav-link>Modules</a>
-                <a href="#how-it-works" data-nav-link>How It Works</a>
-                <a href="#security" data-nav-link>Security</a>
-                <a href="#contact" data-nav-link>Contact</a>
+                <a href="#workflow" data-nav-link>How It Works</a>
+                <a href="#roles" data-nav-link>Workspaces</a>
             </nav>
 
             <div class="landing-actions">
-                <a href="{{ route('login') }}" class="btn btn-light">Sign In</a>
+                <a href="{{ route('login') }}" class="btn btn-outline-primary">Sign In</a>
                 <a href="{{ route('company.register') }}" class="btn btn-primary">Register Company</a>
             </div>
         </div>
@@ -35,56 +33,52 @@
             <div class="container">
                 <div class="row align-items-center g-5">
                     <div class="col-lg-6">
-                        <span class="hero-badge">Smart Software Company Management System</span>
-                        <h1>Run your software company with <span>clarity, control and confidence.</span></h1>
-                        <p>Elevanix brings employees, clients, projects, tasks, work tracking, payments, invoices and reporting into one secure management workspace.</p>
+                        <span class="hero-badge">Smart Software Company Management Platform</span>
+                        <h1>Run your software company from one connected workspace.</h1>
+                        <p>Elevanix centralizes teams, clients, projects, tasks, attendance, leave, work tracking, payments, invoices and reports in a secure SaaS platform.</p>
                         <div class="hero-buttons">
                             <a class="btn btn-primary btn-lg" href="{{ route('company.register') }}">
                                 <i class="fa-solid fa-building-circle-check" aria-hidden="true"></i>
                                 Register Your Company
                             </a>
-                            <a class="btn btn-outline-primary btn-lg" href="#features">
-                                <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-                                Explore Features
+                            <a class="btn btn-outline-primary btn-lg" href="{{ route('login') }}">
+                                <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+                                Sign In
                             </a>
                         </div>
-                        <p class="hero-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> No employee self-registration. Company accounts are reviewed before activation.</p>
-                        <div class="feature-chips" aria-label="Quick features">
-                            @foreach(['Team Management', 'Project Tracking', 'Work Timer', 'Payments', 'Reports'] as $chip)
+                        <p class="hero-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Company workspaces are activated after platform administrator approval.</p>
+                        <div class="feature-chips" aria-label="Elevanix capabilities">
+                            @foreach(['Projects', 'Employees', 'Clients', 'Work Tracking', 'Reports'] as $chip)
                                 <span>{{ $chip }}</span>
                             @endforeach
                         </div>
                     </div>
                     <div class="col-lg-6">
-                        <div class="dashboard-preview" aria-label="Elevanix dashboard preview">
+                        <div class="dashboard-preview auth-preview" aria-label="Elevanix workspace preview">
                             <aside class="preview-sidebar">
                                 <x-brand-logo variant="icon" tone="light" />
                                 <span></span><span></span><span></span><span></span>
                             </aside>
                             <div class="preview-main">
                                 <div class="preview-topbar">
-                                    <strong>Operations Dashboard</strong>
-                                    <span>Company Admin</span>
+                                    <strong>Company Operations</strong>
+                                    <span>Today</span>
                                 </div>
                                 <div class="preview-stats">
-                                    <article><i class="fa-solid fa-diagram-project"></i><strong>18</strong><span>Active Projects</span></article>
-                                    <article><i class="fa-solid fa-list-check"></i><strong>64</strong><span>Open Tasks</span></article>
-                                    <article><i class="fa-solid fa-clock"></i><strong>126h</strong><span>This Week</span></article>
+                                    <article><i class="fa-solid fa-users"></i><strong>Teams</strong><span>Employees and roles</span></article>
+                                    <article><i class="fa-solid fa-diagram-project"></i><strong>Projects</strong><span>Requests to delivery</span></article>
+                                    <article><i class="fa-solid fa-chart-line"></i><strong>Reports</strong><span>Work and finance</span></article>
                                 </div>
                                 <div class="preview-card">
-                                    <div><strong>Client Portal Upgrade</strong><span class="status-pill">In Progress</span></div>
-                                    <div class="preview-progress"><span style="width: 68%"></span></div>
-                                    <small>Design review, backend APIs and QA tasks are moving together.</small>
+                                    <div><strong>Workspace Activation</strong><span class="status-pill">Review</span></div>
+                                    <div class="preview-progress"><span style="width: 66%"></span></div>
+                                    <small>Register, receive approval, then manage daily company operations.</small>
                                 </div>
                                 <div class="preview-list">
-                                    <span><i class="fa-solid fa-circle-check"></i> Invoice sent to client</span>
-                                    <span><i class="fa-solid fa-user-plus"></i> New employee assigned</span>
-                                    <span><i class="fa-solid fa-bell"></i> Task deadline reminder</span>
+                                    <span><i class="fa-solid fa-circle-check"></i> Project request reviewed</span>
+                                    <span><i class="fa-solid fa-clock"></i> Work session recorded</span>
+                                    <span><i class="fa-solid fa-file-invoice-dollar"></i> Invoice ready for payment</span>
                                 </div>
-                            </div>
-                            <div class="preview-float">
-                                <i class="fa-solid fa-envelope-open-text"></i>
-                                <span>Approval email ready</span>
                             </div>
                         </div>
                     </div>
@@ -92,18 +86,61 @@
             </div>
         </section>
 
-        <section id="features" class="section-pad highlights-section">
+        <section id="features" class="section-pad">
             <div class="container">
-                <div class="row g-3">
+                <x-landing.section-heading title="Core capabilities for software company operations." eyebrow="Platform Features">
+                    Focused tools for the workflows Elevanix already supports.
+                </x-landing.section-heading>
+                <div class="row g-4">
                     @foreach([
-                        ['fa-solid fa-layer-group', 'Centralized Workspace', 'Keep daily operations connected in one place.'],
-                        ['fa-solid fa-user-shield', 'Role-Based Access', 'Separate Super Admin, Company Admin and Employee workspaces.'],
-                        ['fa-solid fa-stopwatch', 'Real-Time Work Tracking', 'Connect work sessions to people, projects and tasks.'],
-                        ['fa-solid fa-database', 'Secure Company Data', 'Company-owned records stay separated by tenant.'],
-                        ['fa-solid fa-bell', 'Automated Notifications', 'Send important registration and workflow updates.'],
+                        ['fa-solid fa-diagram-project', 'Project Management', 'Plan projects, assign teams, monitor progress and deadlines.'],
+                        ['fa-solid fa-users-gear', 'Team Management', 'Create employee accounts, manage status, roles and permissions.'],
+                        ['fa-solid fa-address-book', 'Client Management', 'Keep client records connected with projects, invoices and payments.'],
+                        ['fa-solid fa-stopwatch', 'Task & Work Tracking', 'Track task progress and work sessions against real delivery work.'],
+                        ['fa-solid fa-file-invoice-dollar', 'Finance & Invoicing', 'Manage client payments, invoices, balances and payment status.'],
+                        ['fa-solid fa-chart-column', 'Reports & Analytics', 'Review company activity, work hours, revenue and operational reports.'],
                     ] as [$icon, $title, $text])
-                        <div class="col-md-6 col-xl">
-                            <article class="highlight-card h-100">
+                        <div class="col-md-6 col-lg-4">
+                            <x-landing.module-card :icon="$icon" :title="$title">{{ $text }}</x-landing.module-card>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
+        <section id="workflow" class="section-pad role-section">
+            <div class="container">
+                <x-landing.section-heading title="A clear path from registration to daily work." eyebrow="Workflow" />
+                <div class="steps-row workflow-steps">
+                    @foreach([
+                        ['Company Registration', 'Submit company and administrator details.'],
+                        ['Admin Approval', 'A Super Admin reviews the request.'],
+                        ['Workspace Activated', 'Approval creates the company, admin account and subscription.'],
+                        ['Operations Begin', 'Teams, clients, projects, tasks and finance work are managed inside Elevanix.'],
+                    ] as $index => [$title, $text])
+                        <article class="step-card">
+                            <span>{{ $index + 1 }}</span>
+                            <h3>{{ $title }}</h3>
+                            <p>{{ $text }}</p>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
+        <section id="roles" class="section-pad">
+            <div class="container">
+                <x-landing.section-heading title="Role-aware workspaces without separate login portals." eyebrow="Workspace Access">
+                    Users sign in once, and Elevanix routes them to the right workspace.
+                </x-landing.section-heading>
+                <div class="row g-4">
+                    @foreach([
+                        ['Super Admin', 'fa-solid fa-user-tie', 'Platform owner tools for companies, subscriptions, revenue, reports and audit logs.'],
+                        ['Company Admin', 'fa-solid fa-briefcase', 'Company operations tools for employees, clients, projects, tasks, finance and reports.'],
+                        ['Employee', 'fa-solid fa-user-check', 'Personal work tools for assigned projects, tasks, attendance, leave and notifications.'],
+                    ] as [$title, $icon, $text])
+                        <div class="col-lg-4">
+                            <article class="role-card h-100">
                                 <i class="{{ $icon }}" aria-hidden="true"></i>
                                 <h3>{{ $title }}</h3>
                                 <p>{{ $text }}</p>
@@ -114,135 +151,12 @@
             </div>
         </section>
 
-        <section id="modules" class="section-pad">
-            <div class="container">
-                <x-landing.section-heading title="Everything your software company needs in one platform." eyebrow="Core Modules">
-                    Manage company operations without jumping between disconnected spreadsheets, timers and billing tools.
-                </x-landing.section-heading>
-                <div class="row g-4">
-                    @foreach([
-                        ['fa-solid fa-building', 'Company Management', 'Handle company profiles, approval status and workspace settings.'],
-                        ['fa-solid fa-users', 'Employee Management', 'Create team accounts, roles, departments and assignments.'],
-                        ['fa-solid fa-address-book', 'Client Management', 'Keep client contacts, projects, payments and invoices connected.'],
-                        ['fa-solid fa-inbox', 'Project Requests', 'Capture, review and convert client requests into projects.'],
-                        ['fa-solid fa-diagram-project', 'Project Management', 'Track project owners, members, budgets, progress and deadlines.'],
-                        ['fa-solid fa-list-check', 'Task Management', 'Assign tasks, monitor status and keep work moving clearly.'],
-                        ['fa-solid fa-clock', 'Work Timer and Sessions', 'Record focused time against projects and tasks.'],
-                        ['fa-solid fa-file-invoice-dollar', 'Payments and Invoices', 'Manage invoice totals, payments and pending balances.'],
-                        ['fa-solid fa-chart-line', 'Reports and Analytics', 'Review operational summaries and performance reports.'],
-                        ['fa-solid fa-folder-open', 'Documents and Notifications', 'Share files and notify users about important activity.'],
-                    ] as [$icon, $title, $text])
-                        <div class="col-md-6 col-lg-4">
-                            <x-landing.module-card :icon="$icon" :title="$title">{{ $text }}</x-landing.module-card>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-
-        <section class="section-pad role-section">
-            <div class="container">
-                <x-landing.section-heading title="Dedicated workspaces for every role." eyebrow="Role Access">
-                    Each user sees the tools and company data they are authorized to use.
-                </x-landing.section-heading>
-                <div class="row g-4">
-                    @foreach([
-                        ['Super Admin', 'fa-solid fa-user-tie', 'tone-blue', ['Review company registration requests', 'Approve, suspend or reactivate companies', 'Manage subscription plans and payments', 'View platform reports and audit logs', 'Configure safe system settings']],
-                        ['Company Admin', 'fa-solid fa-briefcase', 'tone-blue', ['Manage company profile and settings', 'Create employees and clients', 'Handle project requests', 'Manage company projects, tasks and invoices', 'Review company reports and work sessions']],
-                        ['Employee', 'fa-solid fa-user-check', 'tone-cyan', ['View assigned company projects', 'Update assigned tasks', 'Start and stop work timer', 'Review own work sessions', 'Receive company notifications']],
-                    ] as [$title, $icon, $tone, $items])
-                        <div class="col-lg-4">
-                            <article class="role-card h-100 {{ $tone }}">
-                                <i class="{{ $icon }}" aria-hidden="true"></i>
-                                <h3>{{ $title }}</h3>
-                                <ul>
-                                    @foreach($items as $item)
-                                        <li>{{ $item }}</li>
-                                    @endforeach
-                                </ul>
-                            </article>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-
-        <section id="how-it-works" class="section-pad">
-            <div class="container">
-                <x-landing.section-heading title="From registration to daily operations." eyebrow="How It Works" />
-                <div class="steps-row">
-                    @foreach([
-                        ['Register Company', 'fa-solid fa-building-circle-arrow-right', 'A software company submits company and administrator details.'],
-                        ['Super Admin Review', 'fa-solid fa-magnifying-glass-chart', 'The platform administrator reviews the request.'],
-                        ['Account Activation', 'fa-solid fa-envelope-circle-check', 'Approved companies receive activation information by email.'],
-                        ['Start Managing', 'fa-solid fa-rocket', 'The Company Admin creates employees and begins operations.'],
-                    ] as $index => [$title, $icon, $text])
-                        <article class="step-card">
-                            <span>{{ $index + 1 }}</span>
-                            <i class="{{ $icon }}" aria-hidden="true"></i>
-                            <h3>{{ $title }}</h3>
-                            <p>{{ $text }}</p>
-                        </article>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-
-        <section class="section-pad showcase-section">
-            <div class="container">
-                @foreach([
-                    ['Manage projects from request to completion.', ['Capture project requests', 'Approve or reject requests', 'Convert approved requests into projects', 'Assign employees', 'Track tasks, deadlines and progress'], 'project'],
-                    ['Track employee work without complexity.', ['Start and stop work timer', 'Connect sessions to projects and tasks', 'Monitor daily and weekly hours', 'Review employee productivity', 'Generate worked-hours reports'], 'timer'],
-                    ['Keep payments and reporting organized.', ['Record client payments', 'Create invoices', 'Monitor pending balances', 'View monthly revenue', 'Export and print reports'], 'finance'],
-                ] as $index => [$title, $items, $type])
-                    <div class="row align-items-center g-4 showcase-row {{ $index % 2 ? 'flex-lg-row-reverse' : '' }}">
-                        <div class="col-lg-6">
-                            <h2>{{ $title }}</h2>
-                            <ul class="check-list">
-                                @foreach($items as $item)
-                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>{{ $item }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="showcase-mockup {{ $type }}">
-                                <div class="mockup-header"><span></span><strong>{{ ucfirst($type) }} workspace</strong></div>
-                                <div class="mockup-grid">
-                                    <span></span><span></span><span></span>
-                                </div>
-                                <div class="mockup-lines">
-                                    <span></span><span></span><span></span><span></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </section>
-
-        <section id="security" class="section-pad">
-            <div class="container">
-                <div class="security-card">
-                    <div>
-                        <span class="hero-badge">Security and Management</span>
-                        <h2>Built for secure company operations.</h2>
-                        <p>Elevanix uses role permissions, company data separation and server-side validation to support safer day-to-day management.</p>
-                    </div>
-                    <div class="security-grid">
-                        @foreach(['Role-based route protection', 'Company data separation', 'Secure authentication', 'Protected documents', 'Activity and audit logging', 'Email notifications', 'Server-side validation', 'Password reset protection'] as $item)
-                            <span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>{{ $item }}</span>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <section class="section-pad cta-section">
             <div class="container">
                 <div class="cta-card">
-                    <h2>Ready to organize your software company in one workspace?</h2>
-                    <p>Submit your company registration request and begin after administrator approval.</p>
-                    <div>
+                    <h2>Ready to manage your software company in one workspace?</h2>
+                    <p>Submit your company registration request. Your workspace becomes available after platform approval.</p>
+                    <div class="hero-buttons justify-content-center">
                         <a href="{{ route('company.register') }}" class="btn btn-light">Register Company</a>
                         <a href="{{ route('login') }}" class="btn btn-outline-light">Sign In</a>
                     </div>
@@ -251,18 +165,18 @@
         </section>
     </main>
 
-    <footer id="contact" class="landing-footer">
+    <footer class="landing-footer">
         <div class="container">
             <div class="row g-4">
-                <div class="col-lg-4">
+                <div class="col-lg-5">
                     <x-brand-logo tone="light" />
-                    <p>Elevanix is a smart software company management system for teams, clients, projects, work tracking and finance operations.</p>
+                    <p>Elevanix is a smart software company management platform for teams, clients, projects, work tracking, finance and operational reporting.</p>
                 </div>
                 <div class="col-sm-4 col-lg-2">
-                    <h3>Platform</h3>
+                    <h3>Product</h3>
                     <a href="#features">Features</a>
-                    <a href="#modules">Modules</a>
-                    <a href="#security">Security</a>
+                    <a href="#workflow">How It Works</a>
+                    <a href="#roles">Workspaces</a>
                 </div>
                 <div class="col-sm-4 col-lg-2">
                     <h3>Access</h3>
@@ -270,15 +184,16 @@
                     <a href="{{ route('company.register') }}">Register Company</a>
                     <a href="{{ route('password.request') }}">Forgot Password</a>
                 </div>
-                <div class="col-sm-4 col-lg-4">
-                    <h3>Contact</h3>
-                    <p>Support: {{ config('mail.from.address', 'noreply@example.com') }}</p>
-                    <p>System: ESSCMS</p>
+                <div class="col-sm-4 col-lg-3">
+                    <h3>Legal</h3>
+                    <a href="{{ route('privacy') }}">Privacy Policy</a>
+                    <a href="{{ route('terms') }}">Terms and Conditions</a>
+                    <a href="{{ route('contact') }}">Contact</a>
                 </div>
             </div>
             <div class="footer-bottom">
                 <span>&copy; {{ date('Y') }} Elevanix</span>
-                <span>Smart Software Company Management System</span>
+                <span>Smart Software Company Management</span>
             </div>
         </div>
     </footer>

@@ -56,4 +56,9 @@ class ProjectRequest extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    public function convertedProject(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'converted_project_id');
+    }
 }

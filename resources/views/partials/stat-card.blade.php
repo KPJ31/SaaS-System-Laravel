@@ -1,14 +1,19 @@
 @php
-    $tone = $tone ?? 'primary';
+    $type = $type ?? ($tone ?? 'primary');
+    $subtitle = $subtitle ?? ($description ?? null);
+    $trend = $trend ?? null;
 @endphp
 
-<article class="stat-card">
+<article class="stat-card stat-card-{{ $type }}">
     <div>
         <span>{{ $label }}</span>
         <strong>{{ $value }}</strong>
-        @isset($description)
-            <small>{{ $description }}</small>
-        @endisset
+        @if($subtitle)
+            <small>{{ $subtitle }}</small>
+        @endif
+        @if($trend)
+            <small class="stat-trend">{{ $trend }}</small>
+        @endif
     </div>
-    <i class="fa-solid {{ $icon }} tone-{{ $tone }}" aria-hidden="true"></i>
+    <i class="fa-solid {{ $icon }} tone-{{ $type }}" aria-hidden="true"></i>
 </article>

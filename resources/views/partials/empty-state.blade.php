@@ -4,13 +4,18 @@
     $message = $message ?? 'There are currently no records available in this section.';
 @endphp
 
-<div class="empty-state">
+<div class="empty-state" role="status">
     <i class="fa-solid {{ $icon }}" aria-hidden="true"></i>
     <strong>{{ $title }}</strong>
     <span>{{ $message }}</span>
-    @isset($action)
+    @if(isset($action) || isset($secondaryAction))
         <div class="empty-state-action">
-            {{ $action }}
+            @isset($action)
+                {{ $action }}
+            @endisset
+            @isset($secondaryAction)
+                {{ $secondaryAction }}
+            @endisset
         </div>
-    @endisset
+    @endif
 </div>

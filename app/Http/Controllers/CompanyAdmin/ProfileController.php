@@ -27,7 +27,13 @@ class ProfileController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'phone' => ['nullable', 'string', 'max:50'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remove_avatar' => ['nullable', 'boolean'],
         ]);
+
+        if ($request->boolean('remove_avatar') && $user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+            $data['avatar'] = null;
+        }
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
@@ -37,6 +43,7 @@ class ProfileController extends Controller
             $data['avatar'] = $request->file('avatar')->store('profile-images', 'public');
         }
 
+        unset($data['remove_avatar']);
         $user->update($data);
 
         return back()->with('success', 'Profile updated successfully.');

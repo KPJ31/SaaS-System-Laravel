@@ -16,8 +16,16 @@ class LeaveRequestController extends Controller
 
     public function index(): View
     {
+        $query = LeaveRequest::where('company_id', $this->companyId())->where('user_id', auth()->id());
+
         return view('employee.leave-requests.index', [
-            'leaves' => LeaveRequest::where('company_id', $this->companyId())->where('user_id', auth()->id())->latest()->paginate(10),
+            'leaves' => (clone $query)->latest()->paginate(10),
+            'summary' => [
+                'pending' => (clone $query)->where('status', 'pending')->count(),
+                'approved' => (clone $query)->where('status', 'approved')->count(),
+                'used_days' => (clone $query)->where('status', 'approved')->sum('total_days'),
+                'upcoming' => (clone $query)->where('status', 'approved')->whereDate('start_date', '>=', today())->count(),
+            ],
         ]);
     }
 

@@ -6,25 +6,30 @@
 @include('partials.page-header', [
     'eyebrow' => 'Time Tracking',
     'title' => 'Work Sessions',
-    'description' => 'Monitor employee timers, daily hours and monthly work totals.',
-    'actions' => new \Illuminate\Support\HtmlString('<a class="btn btn-outline-primary" href="'.route('company-admin.work-sessions.export', request()->query()).'"><i class="fa-solid fa-file-csv"></i>Export CSV</a><a class="btn btn-primary" href="'.route('company-admin.work-sessions.pdf', request()->query()).'"><i class="fa-solid fa-file-pdf"></i>Export PDF</a>')
+    'description' => 'Monitor employee timers, manual entries, daily hours and monthly work totals.',
+    'actions' => new \Illuminate\Support\HtmlString('<a class="btn btn-outline-primary" href="'.route('company-admin.work-sessions.export', request()->query()).'"><i class="fa-solid fa-file-csv"></i>Export CSV</a><a class="btn btn-primary" href="'.route('company-admin.work-sessions.pdf', request()->query()).'"><i class="fa-solid fa-file-pdf"></i>Export PDF</a>'),
 ])
+
 <div class="stat-grid">
     @include('partials.stat-card', ['label' => 'Running Timers', 'value' => $runningTimers, 'icon' => 'fa-play'])
+    @include('partials.stat-card', ['label' => 'Pending Manual', 'value' => $pendingManual, 'icon' => 'fa-clipboard-clock', 'tone' => 'yellow'])
     @include('partials.stat-card', ['label' => 'Today Hours', 'value' => number_format($todayMinutes / 60, 1), 'icon' => 'fa-clock', 'tone' => 'blue'])
     @include('partials.stat-card', ['label' => 'Month Hours', 'value' => number_format($monthMinutes / 60, 1), 'icon' => 'fa-calendar-days', 'tone' => 'green'])
 </div>
+
 <section class="content-card">
     <form class="row g-2 mb-3">
-        <div class="col-md-3"><select class="form-select" name="employee_id"><option value="">All employees</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" @selected(request('employee_id')==$employee->id)>{{ $employee->name }}</option>@endforeach</select></div>
-        <div class="col-md-3"><select class="form-select" name="project_id"><option value="">All projects</option>@foreach($projects as $project)<option value="{{ $project->id }}" @selected(request('project_id')==$project->id)>{{ $project->name }}</option>@endforeach</select></div>
-        <div class="col-md-2"><input class="form-control" type="date" name="date_from" value="{{ request('date_from') }}"></div>
-        <div class="col-md-2"><input class="form-control" type="date" name="date_to" value="{{ request('date_to') }}"></div>
+        <div class="col-md-2"><select class="form-select" name="employee_id"><option value="">All employees</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" @selected(request('employee_id')==$employee->id)>{{ $employee->name }}</option>@endforeach</select></div>
+        <div class="col-md-2"><select class="form-select" name="project_id"><option value="">All projects</option>@foreach($projects as $project)<option value="{{ $project->id }}" @selected(request('project_id')==$project->id)>{{ $project->name }}</option>@endforeach</select></div>
+        <div class="col-md-2"><select class="form-select" name="task_id"><option value="">All tasks</option>@foreach($tasks as $task)<option value="{{ $task->id }}" @selected(request('task_id')==$task->id)>{{ $task->title }}</option>@endforeach</select></div>
+        <div class="col-md-2"><select class="form-select" name="status"><option value="">All statuses</option><option value="running" @selected(request('status')==='running')>Running</option><option value="stopped" @selected(request('status')==='stopped')>Stopped</option><option value="adjusted" @selected(request('status')==='adjusted')>Adjusted</option><option value="manual_pending" @selected(request('status')==='manual_pending')>Manual pending</option></select></div>
+        <div class="col-md-1"><input class="form-control" type="date" name="date_from" value="{{ request('date_from') }}"></div>
+        <div class="col-md-1"><input class="form-control" type="date" name="date_to" value="{{ request('date_to') }}"></div>
         <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit"><i class="fa-solid fa-filter"></i>Filter</button></div>
     </form>
     <div class="table-responsive">
         <table class="table align-middle">
-            <thead><tr><th>Employee</th><th>Project</th><th>Task</th><th>Started</th><th>Ended</th><th>Hours</th><th>Status</th><th>Correction</th></tr></thead>
+            <thead><tr><th>Employee</th><th>Project</th><th>Task</th><th>Started</th><th>Ended</th><th>Hours</th><th>Source</th><th>Status</th><th>Approval</th><th>Correction</th></tr></thead>
             <tbody>
                 @forelse($sessions as $session)
                     <tr>
@@ -34,10 +39,12 @@
                         <td>{{ $session->started_at?->format('Y-m-d H:i') }}</td>
                         <td>{{ $session->ended_at?->format('Y-m-d H:i') ?? 'Running' }}</td>
                         <td>{{ number_format($session->duration_minutes / 60, 1) }}</td>
+                        <td>{{ $session->is_manual ? 'Manual' : 'Timer' }}</td>
                         <td>@include('partials.status-badge', ['status' => $session->status ?? ($session->ended_at ? 'stopped' : 'running')])</td>
+                        <td>{{ $session->approval_status ? ucfirst($session->approval_status) : '-' }}</td>
                         <td>
                             @if($session->ended_at)
-                                <form method="POST" action="{{ route('company-admin.work-sessions.update', $session) }}" class="row g-1 align-items-center">
+                                <form method="POST" action="{{ route('company-admin.work-sessions.update', $session) }}" class="row g-1 align-items-center" data-loading-form>
                                     @csrf @method('PATCH')
                                     <div class="col-4"><input class="form-control form-control-sm" type="number" name="duration_minutes" value="{{ $session->duration_minutes }}" min="1"></div>
                                     <div class="col-4"><input class="form-control form-control-sm" name="adjustment_reason" placeholder="Reason" required></div>
@@ -49,7 +56,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="empty-cell">@include('partials.empty-state', ['icon' => 'fa-clock', 'title' => 'No work sessions', 'message' => 'Employee tracked time appears here.'])</td></tr>
+                    <tr><td colspan="10" class="empty-cell">@include('partials.empty-state', ['icon' => 'fa-clock', 'title' => 'No work sessions', 'message' => 'Employee tracked time appears here.'])</td></tr>
                 @endforelse
             </tbody>
         </table>

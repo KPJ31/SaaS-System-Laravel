@@ -1,13 +1,13 @@
 @extends('layouts.auth')
 
-@section('title', 'Sign In - Elevanix')
+@section('title', 'Sign In | Elevanix')
 
 @section('content')
 <div class="auth-split">
     <section class="auth-visual" aria-label="Elevanix workspace benefits">
         <a href="{{ route('home') }}" class="text-decoration-none"><x-brand-logo tone="light" /></a>
-        <span class="portal-label">ESSCMS Portal</span>
-        <h1>Manage your software company with clarity.</h1>
+        <span class="portal-label">Elevanix Workspace</span>
+        <h1>Run your software company from one connected workspace.</h1>
         <p>One secure workspace for employees, clients, projects, tasks, work sessions, payments, invoices and operational reports.</p>
         <div class="auth-features">
             <x-auth.feature-item icon="fa-solid fa-diagram-project" title="Projects and Operations">Manage requests, projects, tasks and deadlines.</x-auth.feature-item>
@@ -34,7 +34,7 @@
             <form method="POST" action="{{ route('login.store') }}" data-loading-form>
                 @csrf
                 <div class="mb-3">
-                    <label for="login" class="form-label">Email or Username</label>
+                    <label for="login" class="form-label">Email or username</label>
                     <div class="input-icon">
                         <i class="fa-regular fa-user" aria-hidden="true"></i>
                         <input id="login" name="login" value="{{ old('login') }}" autocomplete="username" class="form-control @error('login') is-invalid @enderror" required autofocus aria-invalid="{{ $errors->has('login') ? 'true' : 'false' }}" @if($errors->has('login')) aria-describedby="login-error" @endif>

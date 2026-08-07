@@ -7,7 +7,7 @@
 <div class="content-grid">
     <section class="content-card">
         <h2>Request Details</h2>
-        <dl class="detail-list mt-3"><dt>Employee</dt><dd>{{ $leave->user?->name }}</dd><dt>Status</dt><dd>@include('partials.status-badge', ['status' => $leave->status])</dd><dt>Dates</dt><dd>{{ $leave->start_date->format('Y-m-d') }} to {{ $leave->end_date->format('Y-m-d') }}</dd><dt>Total days</dt><dd>{{ $leave->total_days }}</dd><dt>Reason</dt><dd>{{ $leave->reason }}</dd><dt>Review note</dt><dd>{{ $leave->review_note ?? '-' }}</dd></dl>
+        <dl class="detail-list mt-3"><dt>Employee</dt><dd>{{ $leave->user?->name }}</dd><dt>Status</dt><dd>@include('partials.status-badge', ['status' => $leave->status])</dd><dt>Dates</dt><dd>{{ $leave->start_date->format('Y-m-d') }} to {{ $leave->end_date->format('Y-m-d') }}</dd><dt>Total days</dt><dd>{{ $leave->total_days }}</dd><dt>Reason</dt><dd>{{ $leave->reason }}</dd><dt>Reviewer</dt><dd>{{ $leave->reviewer?->name ?? '-' }}</dd><dt>Reviewed at</dt><dd>{{ $leave->reviewed_at?->format('Y-m-d H:i') ?? '-' }}</dd><dt>Review note</dt><dd>{{ $leave->review_note ?? '-' }}</dd></dl>
     </section>
     <section class="content-card">
         <h2>Decision</h2>

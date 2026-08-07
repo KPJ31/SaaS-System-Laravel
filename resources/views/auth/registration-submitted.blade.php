@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Registration Submitted - Elevanix')
+@section('title', 'Registration Submitted | Elevanix')
 
 @section('content')
 <div class="submitted-page">
@@ -8,16 +8,17 @@
         <a href="{{ route('home') }}" class="text-decoration-none"><x-brand-logo /></a>
         <div class="success-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
         <span class="form-badge">Request Received</span>
-        <h1>Registration request submitted</h1>
-        <p>Your company registration request has been received and is waiting for Super Admin review. The approval result will be sent by email.</p>
+        <h1>Registration Submitted</h1>
+        <p>Your company registration request has been received and is awaiting platform review. The approval result will be sent by email.</p>
         @if(session('company_registration_email'))
             <p class="submitted-email">Confirmation email: <strong>{{ session('company_registration_email') }}</strong></p>
         @endif
         <div class="next-steps">
             @foreach([
-                ['Request received', 'Your company details were submitted successfully.'],
-                ['Administrator review', 'A Super Admin reviews the company request.'],
-                ['Result sent by email', 'Approval or rejection information is sent safely.'],
+                ['Request submitted', 'Your company and administrator details were received.'],
+                ['Platform review', 'A Super Admin reviews the company request.'],
+                ['Company approval', 'Approval creates your company workspace and Company Admin account.'],
+                ['Workspace activation', 'The Company Admin can sign in using the password created during registration.'],
             ] as $index => [$title, $text])
                 <article>
                     <span>{{ $index + 1 }}</span>

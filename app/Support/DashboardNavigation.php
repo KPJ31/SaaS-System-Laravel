@@ -4,9 +4,11 @@ namespace App\Support;
 
 use App\Models\Attendance;
 use App\Models\CompanyRegistrationRequest;
+use App\Models\CompanyEvent;
 use App\Models\Invoice;
 use App\Models\LeaveRequest;
 use App\Models\Payment;
+use App\Models\PersonalTodo;
 use App\Models\ProjectRequest;
 use App\Models\Subscription;
 use App\Models\SubscriptionChangeRequest;
@@ -42,41 +44,33 @@ class DashboardNavigation
         $pendingPlanChanges = SubscriptionChangeRequest::whereIn('status', ['pending', 'payment_submitted', 'under_review'])->count();
 
         return self::cleanGroups([
-            self::group('Overview', [
+            self::group('Main', [
                 self::item('Dashboard', 'fa-gauge-high', 'super-admin.dashboard', 'super-admin.dashboard'),
             ]),
-            self::group('Platform Management', [
-                self::item('Companies', 'fa-building', 'super-admin.companies.index', 'super-admin.companies.*', null, [
-                    self::item('All Companies', 'fa-building', 'super-admin.companies.index', 'super-admin.companies.*'),
-                    self::item('Registration Requests', 'fa-building-circle-check', 'super-admin.company-requests.index', 'super-admin.company-requests.*', $pendingRequests),
-                ]),
-                self::item('Subscriptions', 'fa-credit-card', 'super-admin.subscriptions.index', ['super-admin.subscriptions.*', 'super-admin.subscription-plans.*'], null, [
-                    self::item('Subscription Plans', 'fa-layer-group', 'super-admin.subscription-plans.index', 'super-admin.subscription-plans.*'),
-                    self::item('Company Subscriptions', 'fa-arrows-rotate', 'super-admin.subscriptions.index', 'super-admin.subscriptions.*'),
-                    self::item('Plan Change Requests', 'fa-code-compare', 'super-admin.subscription-change-requests.index', 'super-admin.subscription-change-requests.*', $pendingPlanChanges),
-                    self::item('Expiring Subscriptions', 'fa-calendar-days', 'super-admin.reports.show', 'super-admin.reports.show', $expiringSubscriptions, [], ['report' => 'subscription-expiry']),
-                    self::item('Subscription Payments', 'fa-money-check-dollar', 'super-admin.payments.index', 'super-admin.payments.*', $pendingPayments),
-                ]),
+            self::group('Platform', [
+                self::item('Companies', 'fa-building', 'super-admin.companies.index', 'super-admin.companies.*'),
+                self::item('Company Requests', 'fa-building-circle-check', 'super-admin.company-requests.index', 'super-admin.company-requests.*', $pendingRequests),
+                self::item('Users', 'fa-users', 'super-admin.users.index', 'super-admin.users.*'),
             ]),
-            self::group('User and Operations', [
-                self::item('Platform Users', 'fa-users', 'super-admin.users.index', 'super-admin.users.*'),
+            self::group('Subscriptions', [
+                self::item('Subscription Plans', 'fa-layer-group', 'super-admin.subscription-plans.index', 'super-admin.subscription-plans.*'),
+                self::item('Subscriptions', 'fa-repeat', 'super-admin.subscriptions.index', 'super-admin.subscriptions.*', $expiringSubscriptions),
+                self::item('Change Requests', 'fa-code-compare', 'super-admin.subscription-change-requests.index', 'super-admin.subscription-change-requests.*', $pendingPlanChanges),
             ]),
             self::group('Finance', [
-                self::item('Revenue', 'fa-money-bill-wave', 'super-admin.payments.index', ['super-admin.payments.*', 'super-admin.revenue.*'], null, [
-                    self::item('Revenue Overview', 'fa-chart-line', 'super-admin.revenue.index', 'super-admin.revenue.*'),
-                    self::item('Platform Payments', 'fa-money-bill-wave', 'super-admin.payments.index', 'super-admin.payments.*'),
-                ]),
+                self::item('Payments', 'fa-money-check-dollar', 'super-admin.payments.index', 'super-admin.payments.*', $pendingPayments),
+                self::item('Revenue', 'fa-chart-line', 'super-admin.revenue.index', 'super-admin.revenue.*'),
             ]),
             self::group('Insights', [
-                self::item('Reports and Analytics', 'fa-chart-column', 'super-admin.reports.index', 'super-admin.reports.*'),
-            ]),
-            self::group('Administration', [
-                self::item('Notifications', 'fa-bell', 'super-admin.notifications.index', 'super-admin.notifications.*', $user->unreadNotifications()->count()),
+                self::item('Reports', 'fa-chart-column', 'super-admin.reports.index', 'super-admin.reports.*'),
                 self::item('Audit Logs', 'fa-clipboard-list', 'super-admin.audit-logs.index', 'super-admin.audit-logs.*'),
+            ]),
+            self::group('System', [
+                self::item('Notifications', 'fa-bell', 'super-admin.notifications.index', 'super-admin.notifications.*', $user->unreadNotifications()->count()),
                 self::item('System Settings', 'fa-gear', 'super-admin.settings.index', 'super-admin.settings.*'),
             ]),
             self::group('Account', [
-                self::item('My Profile', 'fa-user-circle', 'super-admin.profile.show', 'super-admin.profile.*'),
+                self::item('Profile', 'fa-user-circle', 'super-admin.profile.show', 'super-admin.profile.*'),
             ]),
         ]);
     }
@@ -88,16 +82,23 @@ class DashboardNavigation
         $activePlans = \App\Models\SubscriptionPlan::where('status', 'active')->exists();
 
         return self::cleanGroups([
-            self::group('Overview', [
+            self::group('Main', [
                 self::item('Dashboard', 'fa-gauge-high', 'company-admin.dashboard', 'company-admin.dashboard'),
+                self::item('Calendar', 'fa-calendar-days', 'company-admin.calendar.index', ['company-admin.calendar.*', 'company-admin.company-events.*'], null, [
+                    self::item('Calendar', 'fa-calendar-days', 'company-admin.calendar.index', 'company-admin.calendar.*'),
+                    self::item('Company Events', 'fa-calendar-check', 'company-admin.company-events.index', 'company-admin.company-events.*', $counts['upcomingCompanyEvents']),
+                    self::item('Create Event', 'fa-plus', 'company-admin.company-events.create', 'company-admin.company-events.create'),
+                ]),
             ]),
-            self::group('Organization', [
+            self::group('Company', [
                 self::item('Company', 'fa-building', 'company-admin.company-profile.show', ['company-admin.company-profile.*', 'company-admin.settings.*', 'company-admin.subscription.*'], null, [
                     self::item('Company Profile', 'fa-building', 'company-admin.company-profile.show', 'company-admin.company-profile.*'),
                     self::item('Company Settings', 'fa-gear', 'company-admin.settings.index', 'company-admin.settings.*'),
                     self::item('Subscription Information', 'fa-credit-card', 'company-admin.subscription.index', 'company-admin.subscription.*', $counts['pendingPlanChanges']),
                     $activePlans ? self::item('Change Plan', 'fa-code-compare', 'company-admin.subscription.index', 'company-admin.subscription.*') : null,
                 ]),
+            ]),
+            self::group('People', [
                 self::item('Employees', 'fa-user-tie', 'company-admin.employees.index', ['company-admin.employees.*', 'company-admin.performance.*'], $counts['pendingEmployees'], [
                     self::item('All Employees', 'fa-users', 'company-admin.employees.index', 'company-admin.employees.index'),
                     self::item('Add Employee', 'fa-user-plus', 'company-admin.employees.create', 'company-admin.employees.create'),
@@ -125,6 +126,7 @@ class DashboardNavigation
                 ]),
                 self::item('Tasks', 'fa-list-check', 'company-admin.tasks.index', 'company-admin.tasks.*', $counts['overdueTasks'] + $counts['submittedTasks'], [
                     self::item('All Tasks', 'fa-list-check', 'company-admin.tasks.index', 'company-admin.tasks.index'),
+                    self::item('Kanban Board', 'fa-table-columns', 'company-admin.tasks.kanban', 'company-admin.tasks.kanban'),
                     self::item('Create Task', 'fa-plus', 'company-admin.tasks.create', 'company-admin.tasks.create'),
                     self::item('Pending Tasks', 'fa-hourglass-half', 'company-admin.tasks.index', 'company-admin.tasks.index', null, [], ['status' => 'todo']),
                     self::item('Overdue Tasks', 'fa-triangle-exclamation', 'company-admin.reports.show', 'company-admin.reports.show', $counts['overdueTasks'], [], ['report' => 'overdue-tasks']),
@@ -166,6 +168,7 @@ class DashboardNavigation
                 self::item('Activity Logs', 'fa-clipboard-list', 'company-admin.activity-logs.index', 'company-admin.activity-logs.*'),
             ]),
             self::group('Communication', [
+                self::item('My Todos', 'fa-list-check', 'company-admin.todos.index', 'company-admin.todos.*'),
                 self::item('Notifications', 'fa-bell', 'company-admin.notifications.index', 'company-admin.notifications.*', $counts['unreadNotifications']),
             ]),
             self::group('Account', [
@@ -179,6 +182,7 @@ class DashboardNavigation
         $counts = self::companyCounts((int) $user->company_id, $user);
         $ownCounts = [
             'myTasks' => Task::where('company_id', $user->company_id)->where('assignee_id', $user->id)->whereIn('status', ['todo', 'assigned', 'in_progress', 'paused', 'blocked'])->count(),
+            'openTodos' => PersonalTodo::where('company_id', $user->company_id)->where('user_id', $user->id)->where('status', 'open')->count(),
             'activeTimer' => WorkSession::where('company_id', $user->company_id)->where('user_id', $user->id)->whereNull('ended_at')->count(),
             'pendingLeaves' => LeaveRequest::where('company_id', $user->company_id)->where('user_id', $user->id)->where('status', 'pending')->count(),
         ];
@@ -186,6 +190,7 @@ class DashboardNavigation
         return self::cleanGroups([
             self::group('Overview', [
                 self::item('Dashboard', 'fa-gauge-high', 'employee.dashboard', 'employee.dashboard'),
+                self::item('Calendar', 'fa-calendar-days', 'employee.calendar.index', 'employee.calendar.*'),
             ]),
             self::group('My Work', [
                 self::item('My Projects', 'fa-folder-open', 'employee.projects.index', 'employee.projects.*'),
@@ -201,6 +206,7 @@ class DashboardNavigation
                     self::item('My Work Sessions', 'fa-clock', 'employee.work-sessions.index', 'employee.work-sessions.*'),
                 ]),
                 self::item('My Documents', 'fa-folder-open', 'employee.documents.index', 'employee.documents.*'),
+                self::item('My Todos', 'fa-list-check', 'employee.todos.index', 'employee.todos.*', $ownCounts['openTodos']),
             ]),
             self::group('Company Operations', [
                 self::whenCanAny($user, ['clients.view', 'clients.create', 'clients.edit', 'clients.delete'], self::item('Clients', 'fa-address-book', 'employee.clients.index', 'employee.clients.*')),
@@ -234,6 +240,7 @@ class DashboardNavigation
             'pendingLeaveRequests' => LeaveRequest::where('company_id', $companyId)->where('status', 'pending')->count(),
             'pendingPayments' => Payment::where('company_id', $companyId)->where('payment_type', 'client_project')->whereIn('status', ['pending', 'requested', 'proof_submitted'])->count(),
             'pendingPlanChanges' => SubscriptionChangeRequest::where('company_id', $companyId)->whereIn('status', SubscriptionChangeRequest::ACTIVE_STATUSES)->count(),
+            'upcomingCompanyEvents' => class_exists(CompanyEvent::class) ? CompanyEvent::where('company_id', $companyId)->where('status', 'scheduled')->where('start_at', '>=', today())->count() : 0,
             'overdueInvoices' => Invoice::where('company_id', $companyId)->where('status', 'overdue')->count(),
             'unreadNotifications' => $user->unreadNotifications()->count(),
         ];

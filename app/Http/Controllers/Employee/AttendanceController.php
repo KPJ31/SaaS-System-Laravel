@@ -5,24 +5,22 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Employee\Concerns\HandlesEmployeeAccess;
 use App\Models\Attendance;
-use App\Models\CompanySetting;
-use App\Models\LeaveRequest;
+use App\Services\AttendanceService;
 use App\Services\AuditLogger;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AttendanceController extends Controller
 {
     use HandlesEmployeeAccess;
 
-    public function index(Request $request): View
+    public function index(Request $request, AttendanceService $attendanceService): View
     {
-        $settings = $this->attendanceSettings();
+        abort_unless(! $request->filled('status') || in_array($request->status, AttendanceService::STATUSES, true), 404);
+        $settings = $attendanceService->settingsForCompany($this->companyId(), auth()->user()->company);
         $attendances = $this->filtered($request)
             ->latest('attendance_date')
             ->paginate(12)
@@ -33,6 +31,7 @@ class AttendanceController extends Controller
         return view('employee.attendance.index', [
             'attendances' => $attendances,
             'settings' => $settings,
+            'todayAttendance' => $attendanceService->todayAttendance(auth()->user(), $settings),
             'summary' => [
                 'present' => (clone $summaryQuery)->where('status', 'present')->count(),
                 'late' => (clone $summaryQuery)->where('is_late', true)->count(),
@@ -43,35 +42,9 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function checkIn(AuditLogger $logger): RedirectResponse
+    public function checkIn(AttendanceService $attendanceService, AuditLogger $logger): RedirectResponse
     {
-        $settings = $this->attendanceSettings();
-        $now = now($settings['timezone']);
-        $date = $now->toDateString();
-
-        $this->ensureAttendanceAllowed($settings, $now);
-
-        if ($this->approvedLeaveExists($date)) {
-            throw ValidationException::withMessages(['attendance' => 'You have approved leave for today. Attendance check-in is not required.']);
-        }
-
-        if (Attendance::where('company_id', $this->companyId())->where('user_id', auth()->id())->whereDate('attendance_date', $date)->exists()) {
-            throw ValidationException::withMessages(['attendance' => 'You have already checked in for today.']);
-        }
-
-        $start = Carbon::parse($date.' '.$settings['work_start_time'], $settings['timezone']);
-        $allowedArrival = $start->copy()->addMinutes((int) $settings['late_grace_minutes']);
-        $isLate = $now->gt($allowedArrival);
-
-        $attendance = Attendance::create([
-            'company_id' => $this->companyId(),
-            'user_id' => auth()->id(),
-            'attendance_date' => $date,
-            'check_in_time' => $now,
-            'status' => $isLate ? 'late' : 'present',
-            'is_late' => $isLate,
-            'late_minutes' => $isLate ? $start->diffInMinutes($now) : 0,
-        ]);
+        $attendance = $attendanceService->checkIn(auth()->user());
 
         $logger->record('attendance_checked_in', 'Employee checked in for attendance.', auth()->user(), $attendance, $this->companyId(), request: request());
 
@@ -103,49 +76,14 @@ class AttendanceController extends Controller
         ])->setPaper('a4', 'landscape')->download('my-attendance.pdf');
     }
 
-    public function checkOut(Request $request, AuditLogger $logger): RedirectResponse
+    public function checkOut(Request $request, AttendanceService $attendanceService, AuditLogger $logger): RedirectResponse
     {
         $data = $request->validate(['note' => ['nullable', 'string', 'max:1000']]);
-        $settings = $this->attendanceSettings();
-        $now = now($settings['timezone']);
-        $date = $now->toDateString();
+        $attendance = $attendanceService->checkOut(auth()->user(), $data['note'] ?? null);
 
-        $attendance = Attendance::where('company_id', $this->companyId())
-            ->where('user_id', auth()->id())
-            ->whereDate('attendance_date', $date)
-            ->first();
-
-        if (! $attendance || ! $attendance->check_in_time) {
-            throw ValidationException::withMessages(['attendance' => 'Please check in before checking out.']);
-        }
-
-        if ($attendance->check_out_time) {
-            throw ValidationException::withMessages(['attendance' => 'You have already checked out for today.']);
-        }
-
-        if ($now->lte($attendance->check_in_time->timezone($settings['timezone']))) {
-            throw ValidationException::withMessages(['attendance' => 'Check-out time must be after check-in time.']);
-        }
-
-        $summary = $this->calculateSummary($attendance->check_in_time->timezone($settings['timezone']), $now, $settings);
-        $attendance->update($summary + [
-            'check_out_time' => $now,
-            'note' => $data['note'] ?? $attendance->note,
-        ]);
-
-        $logger->record('attendance_checked_out', 'Employee checked out for attendance.', auth()->user(), $attendance, $this->companyId(), ['summary' => $summary], $request);
+        $logger->record('attendance_checked_out', 'Employee checked out for attendance.', auth()->user(), $attendance, $this->companyId(), ['summary' => $attendance->only(['gross_minutes', 'lunch_break_minutes', 'net_work_minutes', 'status'])], $request);
 
         return back()->with('success', 'Attendance check-out recorded.');
-    }
-
-    private function attendanceSettings(): array
-    {
-        $setting = CompanySetting::firstOrCreate(
-            ['company_id' => $this->companyId()],
-            ['timezone' => auth()->user()->company?->timezone ?? 'UTC', 'currency' => 'USD', 'settings' => []]
-        );
-
-        return $setting->attendanceSettings() + ['timezone' => $setting->timezone ?: 'UTC'];
     }
 
     private function filtered(Request $request)
@@ -211,47 +149,5 @@ class AttendanceController extends Controller
                 return preg_match('/^[=+\-@]/', $value) ? "'".$value : $value;
             })
             ->all();
-    }
-
-    private function ensureAttendanceAllowed(array $settings, Carbon $now): void
-    {
-        if (! $settings['attendance_enabled']) {
-            throw ValidationException::withMessages(['attendance' => 'Attendance tracking is disabled for your company.']);
-        }
-
-        if (! in_array($now->dayOfWeekIso, array_map('intval', $settings['working_days']), true)) {
-            throw ValidationException::withMessages(['attendance' => 'Today is not configured as a working day.']);
-        }
-    }
-
-    private function approvedLeaveExists(string $date): bool
-    {
-        return LeaveRequest::where('company_id', $this->companyId())
-            ->where('user_id', auth()->id())
-            ->where('status', 'approved')
-            ->whereDate('start_date', '<=', $date)
-            ->whereDate('end_date', '>=', $date)
-            ->exists();
-    }
-
-    private function calculateSummary(Carbon $checkIn, Carbon $checkOut, array $settings): array
-    {
-        $gross = max(1, $checkIn->diffInMinutes($checkOut));
-        $lunch = $gross >= 300 ? (int) $settings['lunch_break_minutes'] : 0;
-        $net = max(0, $gross - $lunch);
-        $end = Carbon::parse($checkOut->toDateString().' '.$settings['work_end_time'], $settings['timezone']);
-        $earlyLimit = $end->copy()->subMinutes((int) $settings['early_departure_grace_minutes']);
-        $isEarly = $checkOut->lt($earlyLimit);
-
-        $status = $net >= (int) $settings['full_day_minutes'] ? 'present' : 'half_day';
-
-        return [
-            'gross_minutes' => $gross,
-            'lunch_break_minutes' => $lunch,
-            'net_work_minutes' => $net,
-            'status' => $status,
-            'is_early_departure' => $isEarly,
-            'early_departure_minutes' => $isEarly ? $checkOut->diffInMinutes($end) : 0,
-        ];
     }
 }

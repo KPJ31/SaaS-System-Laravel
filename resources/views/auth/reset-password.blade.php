@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Choose New Password - Elevanix')
+@section('title', 'Reset Password | Elevanix')
 
 @section('content')
 <div class="auth-split">

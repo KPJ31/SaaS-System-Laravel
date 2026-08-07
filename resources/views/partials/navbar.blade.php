@@ -35,7 +35,7 @@
                     @endif
                 </div>
                 @forelse($topbarUser->notifications()->latest()->take(5)->get() as $notification)
-                    <a class="dropdown-item notification-item {{ $notification->read_at ? '' : 'is-unread' }}" href="{{ route($topbarPrefix.'.notifications.index') }}">
+                    <a class="dropdown-item notification-item {{ $notification->read_at ? '' : 'is-unread' }}" href="{{ route($topbarPrefix.'.notifications.open', $notification) }}" @unless($notification->read_at) aria-label="Unread notification" @endunless>
                         <strong>{{ $notification->data['title'] ?? class_basename($notification->type) }}</strong>
                         <small>{{ $notification->data['message'] ?? $notification->created_at->diffForHumans() }}</small>
                     </a>

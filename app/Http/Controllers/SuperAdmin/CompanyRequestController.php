@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Notifications\CompanyRegistrationApproved;
 use App\Notifications\CompanyRegistrationRejected;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -22,10 +23,30 @@ use Illuminate\View\View;
 
 class CompanyRequestController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $requests = CompanyRegistrationRequest::query()
+            ->when($request->filled('search'), fn ($query) => $query->where(function ($inner) use ($request): void {
+                $inner->where('company_name', 'like', '%'.$request->search.'%')
+                    ->orWhere('company_email', 'like', '%'.$request->search.'%')
+                    ->orWhere('admin_name', 'like', '%'.$request->search.'%')
+                    ->orWhere('admin_email', 'like', '%'.$request->search.'%');
+            }))
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
+            ->when($request->filled('from'), fn ($query) => $query->whereDate('created_at', '>=', $request->from))
+            ->when($request->filled('to'), fn ($query) => $query->whereDate('created_at', '<=', $request->to))
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         return view('super-admin.company-requests.index', [
-            'requests' => CompanyRegistrationRequest::latest()->paginate(10),
+            'requests' => $requests,
+            'statuses' => ['pending', 'approved', 'rejected'],
+            'summary' => [
+                'pending' => CompanyRegistrationRequest::where('status', 'pending')->count(),
+                'approved' => CompanyRegistrationRequest::where('status', 'approved')->count(),
+                'rejected' => CompanyRegistrationRequest::where('status', 'rejected')->count(),
+            ],
         ]);
     }
 

@@ -3,9 +3,48 @@
 @section('title', 'My Profile - Elevanix')
 
 @section('content')
-@include('partials.page-header', ['eyebrow' => 'Company Admin', 'title' => 'My Profile', 'description' => 'Update your account details and password.'])
+@include('partials.page-header', ['eyebrow' => 'Company Admin', 'title' => 'My Profile', 'description' => 'Manage your personal account. Company identity and workspace settings live under Company.'])
+@include('partials.profile-header-card', ['user' => $user, 'roleLabel' => 'Company Admin', 'status' => $user->status])
+
 <div class="content-grid">
-    <form class="content-card" method="POST" action="{{ route('company-admin.profile.update') }}" enctype="multipart/form-data" data-loading-form>@csrf @method('PUT')<h2>Profile Details</h2><div class="row g-3 mt-1"><div class="col-md-6"><label class="form-label">Name</label><input class="form-control" name="name" value="{{ old('name', $user->name) }}" required></div><div class="col-md-6"><label class="form-label">Email</label><input class="form-control" type="email" name="email" value="{{ old('email', $user->email) }}" required></div><div class="col-md-6"><label class="form-label">Username</label><input class="form-control" name="username" value="{{ old('username', $user->username) }}"></div><div class="col-md-6"><label class="form-label">Phone</label><input class="form-control" name="phone" value="{{ old('phone', $user->phone) }}"></div><div class="col-md-12"><label class="form-label">Profile Image</label><input class="form-control" type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp"></div></div><button class="btn btn-primary mt-4" type="submit">Save profile</button></form>
-    <form class="content-card" id="change-password" method="POST" action="{{ route('company-admin.profile.password') }}" data-loading-form>@csrf @method('PUT')<h2>Change Password</h2><div class="row g-3 mt-1"><div class="col-md-12"><label class="form-label">Current Password</label><input class="form-control" type="password" name="current_password" required></div><div class="col-md-12"><label class="form-label">New Password</label><input class="form-control" type="password" name="password" required></div><div class="col-md-12"><label class="form-label">Confirm Password</label><input class="form-control" type="password" name="password_confirmation" required></div></div><button class="btn btn-primary mt-4" type="submit">Update password</button></form>
+    <form class="content-card" method="POST" action="{{ route('company-admin.profile.update') }}" enctype="multipart/form-data" data-loading-form>
+        @csrf
+        @method('PUT')
+        <div class="content-card-header"><div><h2>Personal Information</h2><p>Your individual account and contact details.</p></div></div>
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label" for="name">Name</label><input class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $user->name) }}" required>@error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+            <div class="col-md-6"><label class="form-label" for="username">Username</label><input class="form-control @error('username') is-invalid @enderror" id="username" name="username" value="{{ old('username', $user->username) }}">@error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+            <div class="col-md-6"><label class="form-label" for="email">Email</label><input class="form-control @error('email') is-invalid @enderror" id="email" type="email" name="email" value="{{ old('email', $user->email) }}" required>@error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+            <div class="col-md-6"><label class="form-label" for="phone">Phone</label><input class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone', $user->phone) }}">@error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+            <div class="col-12"><label class="form-label" for="avatar">Profile Image</label><input class="form-control @error('avatar') is-invalid @enderror" id="avatar" type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp" data-image-preview="#company-admin-avatar-preview">@error('avatar')<div class="invalid-feedback">{{ $message }}</div>@enderror<small class="helper-text">JPG, PNG or WEBP up to 2MB.</small></div>
+            <div class="col-12"><img id="company-admin-avatar-preview" src="{{ $user->avatar ? asset('storage/'.$user->avatar) : '' }}" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;{{ $user->avatar ? '' : 'display:none;' }}"></div>
+            @if($user->avatar)<div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="remove_avatar" value="1"> Remove current image</label></div>@endif
+        </div>
+        <button class="btn btn-primary mt-4" type="submit" data-loading-text="Saving profile..."><i class="fa-solid fa-floppy-disk"></i>Save Profile</button>
+    </form>
+
+    <div>
+        <section class="content-card mb-3">
+            <div class="content-card-header"><div><h2>Account Information</h2><p>Read-only account and workspace context.</p></div></div>
+            <dl class="detail-list mt-3">
+                <dt>Role</dt><dd>Company Admin</dd>
+                <dt>Company</dt><dd>{{ $user->company?->name ?? '-' }}</dd>
+                <dt>Status</dt><dd>@include('partials.status-badge', ['status' => $user->status])</dd>
+                <dt>Created</dt><dd>{{ $user->created_at->format('Y-m-d') }}</dd>
+                <dt>Last Login</dt><dd>{{ $user->last_login_at?->format('Y-m-d H:i') ?? 'Not recorded' }}</dd>
+            </dl>
+        </section>
+        <section class="content-card" id="change-password">
+            <div class="content-card-header"><div><h2>Security</h2><p>Use your current password to set a new one.</p></div></div>
+            <form method="POST" action="{{ route('company-admin.profile.password') }}" class="row g-3 mt-1" data-loading-form>
+                @csrf
+                @method('PUT')
+                <div class="col-12"><label class="form-label" for="current_password">Current Password</label><div class="input-group"><input class="form-control @error('current_password') is-invalid @enderror" id="current_password" type="password" name="current_password" required><button class="btn btn-outline-secondary" type="button" data-password-toggle="#current_password" aria-label="Show current password"><i class="fa-regular fa-eye"></i></button></div>@error('current_password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror</div>
+                <div class="col-12"><label class="form-label" for="password">New Password</label><div class="input-group"><input class="form-control @error('password') is-invalid @enderror" id="password" type="password" name="password" required data-password-strength><button class="btn btn-outline-secondary" type="button" data-password-toggle="#password" aria-label="Show new password"><i class="fa-regular fa-eye"></i></button></div><div class="password-strength" data-password-strength-output><span></span><small>Use at least 8 characters with a mix of letters, numbers and symbols.</small></div>@error('password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror</div>
+                <div class="col-12"><label class="form-label" for="password_confirmation">Confirm Password</label><div class="input-group"><input class="form-control" id="password_confirmation" type="password" name="password_confirmation" required><button class="btn btn-outline-secondary" type="button" data-password-toggle="#password_confirmation" aria-label="Show password confirmation"><i class="fa-regular fa-eye"></i></button></div></div>
+                <div class="col-12"><button class="btn btn-primary" type="submit" data-loading-text="Updating password..."><i class="fa-solid fa-key"></i>Update Password</button></div>
+            </form>
+        </section>
+    </div>
 </div>
 @endsection

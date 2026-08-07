@@ -114,7 +114,14 @@ class EmployeePermissionController extends Controller
         $this->authorizeEmployee($employee);
 
         $data = $request->validate([
-            'source_employee_id' => ['required', 'integer', Rule::exists('users', 'id')],
+            'source_employee_id' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')
+                    ->where(fn ($query) => $query
+                        ->where('company_id', $this->companyId())
+                        ->where('role', 'employee')),
+            ],
         ]);
 
         $sourceEmployee = User::with('permissions')->findOrFail($data['source_employee_id']);

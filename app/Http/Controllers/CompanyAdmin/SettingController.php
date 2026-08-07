@@ -28,7 +28,7 @@ class SettingController extends Controller
     {
         $data = $request->validate([
             'timezone' => ['required', 'timezone'],
-            'currency' => ['required', 'string', 'size:3'],
+            'currency' => ['required', 'alpha', 'size:3'],
             'invoice_prefix' => ['nullable', 'alpha_dash', 'max:20'],
             'default_tax_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'payment_instructions' => ['nullable', 'string', 'max:3000'],
@@ -50,6 +50,8 @@ class SettingController extends Controller
             'working_days' => ['required', 'array', 'min:1'],
             'working_days.*' => ['integer', 'between:1,7'],
         ]);
+
+        $data['currency'] = strtoupper($data['currency']);
 
         $setting = CompanySetting::updateOrCreate(
             ['company_id' => $this->companyId()],

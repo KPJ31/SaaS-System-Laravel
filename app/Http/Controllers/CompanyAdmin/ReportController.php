@@ -16,6 +16,8 @@ use App\Models\ProjectRequest;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkSession;
+use App\Services\ReportAnalyticsService;
+use App\Services\TaskWorkflowService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -26,34 +28,23 @@ class ReportController extends Controller
 {
     use HandlesCompanyAccess;
 
-    public function index(Request $request): View
+    public function index(Request $request, ReportAnalyticsService $reports): View
     {
-        $from = $request->date_from ? Carbon::parse($request->date_from)->startOfDay() : now()->startOfMonth();
-        $to = $request->date_to ? Carbon::parse($request->date_to)->endOfDay() : now()->endOfDay();
+        $overview = $reports->overview($this->companyId(), $request);
 
-        return view('company-admin.reports.index', [
-            'from' => $from,
-            'to' => $to,
-            'employeeCount' => User::where('company_id', $this->companyId())->where('role', 'employee')->count(),
-            'clientCount' => Client::where('company_id', $this->companyId())->count(),
-            'projectCount' => Project::where('company_id', $this->companyId())->count(),
-            'taskCount' => Task::where('company_id', $this->companyId())->count(),
-            'workMinutes' => WorkSession::where('company_id', $this->companyId())->whereBetween('started_at', [$from, $to])->sum('duration_minutes'),
-            'revenue' => Payment::where('company_id', $this->companyId())->where('payment_type', 'client_project')->whereIn('status', ['paid', 'received', 'verified'])->whereBetween('created_at', [$from, $to])->sum('amount'),
-            'invoiceTotal' => Invoice::where('company_id', $this->companyId())->whereBetween('created_at', [$from, $to])->sum('total'),
-            'feedbackCount' => Feedback::where('company_id', $this->companyId())->whereBetween('created_at', [$from, $to])->count(),
-            'requestCount' => ProjectRequest::where('company_id', $this->companyId())->whereBetween('created_at', [$from, $to])->count(),
+        return view('company-admin.reports.index', $overview + [
+            'definitions' => $reports->definitions(),
         ]);
     }
 
-    public function show(Request $request, string $report): View
+    public function show(Request $request, string $report, ReportAnalyticsService $reports): View
     {
-        return view('company-admin.reports.show', $this->reportPayload($request, $report));
+        return view('company-admin.reports.show', $this->reportPayload($request, $report, $reports));
     }
 
-    public function export(Request $request, string $report): StreamedResponse
+    public function export(Request $request, string $report, ReportAnalyticsService $reports): StreamedResponse
     {
-        $payload = $this->reportPayload($request, $report);
+        $payload = $this->reportPayload($request, $report, $reports);
         $filename = 'elevanix-company-'.$report.'-'.now()->format('Y-m-d').'.csv';
 
         return response()->streamDownload(function () use ($payload): void {
@@ -75,9 +66,9 @@ class ReportController extends Controller
         }, $filename, ['Content-Type' => 'text/csv']);
     }
 
-    public function exportPdf(Request $request, string $report)
+    public function exportPdf(Request $request, string $report, ReportAnalyticsService $reports)
     {
-        $payload = $this->reportPayload($request, $report);
+        $payload = $this->reportPayload($request, $report, $reports);
         $filename = 'elevanix-company-'.$report.'-'.now()->format('Y-m-d').'.pdf';
 
         return Pdf::loadView('company-admin.reports.pdf', $payload)
@@ -85,13 +76,25 @@ class ReportController extends Controller
             ->download($filename);
     }
 
-    private function reportPayload(Request $request, string $report): array
+    private function reportPayload(Request $request, string $report, ReportAnalyticsService $reports): array
     {
-        abort_unless(array_key_exists($report, $this->reportTitles()), 404);
+        abort_unless(array_key_exists($report, $this->reportTitles()) || array_key_exists($report, $reports->definitions()), 404);
         $this->authorizeReportAccess($report, str_contains($request->route()?->getName() ?? '', '.export') || str_contains($request->route()?->getName() ?? '', '.pdf'));
         $this->authorizeReportFilters($request);
-
         $companyId = $this->companyId();
+        $enhancedReports = ['projects', 'project-performance', 'tasks', 'task-performance', 'overdue-tasks', 'employee-performance', 'employee-progress', 'work-hours', 'attendance', 'leave', 'financial-summary', 'invoices', 'payments', 'revenue', 'employees', 'clients', 'project-requests', 'activity-logs', 'feedback'];
+
+        if (in_array($report, $enhancedReports, true)) {
+            return $reports->payload($companyId, $request, $report) + [
+                'company' => $this->company(),
+                'employees' => User::where('company_id', $companyId)->where('role', 'employee')->orderBy('name')->get(),
+                'clients' => Client::where('company_id', $companyId)->orderBy('name')->get(),
+                'projects' => Project::where('company_id', $companyId)->orderBy('name')->get(),
+                'tasks' => Task::where('company_id', $companyId)->orderBy('title')->get(),
+                'statuses' => TaskWorkflowService::STATUSES,
+                'priorities' => TaskWorkflowService::PRIORITIES,
+            ];
+        }
 
         [$headers, $rows] = match ($report) {
             'employees' => [
@@ -338,6 +341,22 @@ class ReportController extends Controller
         if ($request->filled('employee_id')) {
             abort_unless(User::where('company_id', $this->companyId())->where('role', 'employee')->whereKey($request->integer('employee_id'))->exists(), 403);
         }
+
+        if ($request->filled('project_id')) {
+            abort_unless(Project::where('company_id', $this->companyId())->whereKey($request->integer('project_id'))->exists(), 403);
+        }
+
+        if ($request->filled('client_id')) {
+            abort_unless(Client::where('company_id', $this->companyId())->whereKey($request->integer('client_id'))->exists(), 403);
+        }
+
+        if ($request->filled('manager_id')) {
+            abort_unless(User::where('company_id', $this->companyId())->whereKey($request->integer('manager_id'))->exists(), 403);
+        }
+
+        if ($request->filled('task_id')) {
+            abort_unless(Task::where('company_id', $this->companyId())->whereKey($request->integer('task_id'))->exists(), 403);
+        }
     }
 
     private function authorizeReportAccess(string $report, bool $exporting): void
@@ -353,16 +372,20 @@ class ReportController extends Controller
         $requiredPermission = [
             'employees' => 'employees.view',
             'employee-performance' => 'employees.view',
+            'employee-progress' => 'employees.view',
             'projects' => 'projects.view',
             'project-progress' => 'projects.view',
+            'project-performance' => 'projects.view',
             'project-requests' => 'project-requests.view',
             'tasks' => 'tasks.view',
+            'task-performance' => 'tasks.view',
             'overdue-tasks' => 'tasks.view',
             'work-hours' => 'work-sessions.view-all',
             'clients' => 'clients.view',
             'payments' => 'payments.view',
             'revenue' => 'payments.view',
             'invoices' => 'invoices.view',
+            'financial-summary' => 'invoices.view',
             'feedback' => 'feedback.view',
             'leave' => 'leave-requests.view-all',
             'attendance' => 'attendance.view-all',
@@ -377,9 +400,12 @@ class ReportController extends Controller
         return [
             'employees' => 'Employee Report',
             'employee-performance' => 'Employee Performance Report',
+            'employee-progress' => 'Employee Progress Report',
             'projects' => 'Project Report',
             'project-progress' => 'Project Progress Report',
+            'project-performance' => 'Project Performance Report',
             'tasks' => 'Task Report',
+            'task-performance' => 'Task Performance Report',
             'overdue-tasks' => 'Overdue Task Report',
             'work-hours' => 'Work Hour Report',
             'clients' => 'Client Report',
@@ -387,6 +413,7 @@ class ReportController extends Controller
             'payments' => 'Payment Report',
             'invoices' => 'Invoice Report',
             'revenue' => 'Revenue Report',
+            'financial-summary' => 'Financial Summary Report',
             'feedback' => 'Feedback Report',
             'leave' => 'Leave Report',
             'attendance' => 'Attendance Report',

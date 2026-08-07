@@ -190,7 +190,7 @@ test('copy permissions works only inside same company', function () {
 
     $this->actingAs($admin)
         ->post(route('company-admin.employees.permissions.copy', $target), ['source_employee_id' => $external->id])
-        ->assertForbidden();
+        ->assertSessionHasErrors('source_employee_id');
 });
 
 test('suspended employee cannot use assigned permissions', function () {

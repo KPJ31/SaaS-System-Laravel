@@ -19,6 +19,8 @@ class DocumentController extends Controller
 
     public function index(Request $request): View
     {
+        $this->authorizeFilters($request);
+
         $files = WorkFile::with(['project', 'task', 'uploader'])
             ->where('company_id', $this->companyId())
             ->when($request->project_id, fn ($query, $id) => $query->where('project_id', $id))
@@ -65,6 +67,7 @@ class DocumentController extends Controller
     public function download(WorkFile $file)
     {
         abort_unless($file->company_id === $this->companyId(), 403);
+        abort_unless(Storage::disk('public')->exists($file->path), 404);
 
         return Storage::disk('public')->download($file->path, $file->original_name);
     }
@@ -87,6 +90,17 @@ class DocumentController extends Controller
         if (! empty($data['task_id'])) {
             $task = Task::where('company_id', $this->companyId())->whereKey($data['task_id'])->firstOrFail();
             abort_unless(empty($data['project_id']) || (int) $task->project_id === (int) $data['project_id'], 403);
+        }
+    }
+
+    private function authorizeFilters(Request $request): void
+    {
+        if ($request->filled('project_id')) {
+            abort_unless(Project::where('company_id', $this->companyId())->whereKey($request->integer('project_id'))->exists(), 403);
+        }
+
+        if ($request->filled('task_id')) {
+            abort_unless(Task::where('company_id', $this->companyId())->whereKey($request->integer('task_id'))->exists(), 403);
         }
     }
 }

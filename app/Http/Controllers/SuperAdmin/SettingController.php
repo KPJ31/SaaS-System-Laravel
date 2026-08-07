@@ -58,7 +58,7 @@ class SettingController extends Controller
             'registration_enabled' => ['nullable', 'boolean'],
             'company_approval_required' => ['nullable', 'boolean'],
             'trial_duration_days' => ['required', 'integer', 'min:0', 'max:365'],
-            'currency' => ['required', 'string', 'max:10'],
+            'currency' => ['required', 'alpha', 'size:3'],
             'subscription_reminder_days' => ['required', 'integer', 'min:1', 'max:90'],
             'allow_trial_plan' => ['nullable', 'boolean'],
             'allow_plan_upgrade' => ['nullable', 'boolean'],
@@ -69,6 +69,8 @@ class SettingController extends Controller
         foreach (['registration_enabled', 'company_approval_required', 'allow_trial_plan', 'allow_plan_upgrade'] as $key) {
             $data[$key] = $request->boolean($key);
         }
+
+        $data['currency'] = strtoupper($data['currency']);
 
         foreach ($data as $key => $value) {
             $type = is_bool($value) ? 'boolean' : (is_int($value) ? 'integer' : 'string');

@@ -9,6 +9,9 @@ use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\WorkFile;
 use App\Services\AuditLogger;
+use App\Services\ProjectProgressService;
+use App\Services\TaskNotificationService;
+use App\Services\TaskWorkflowService;
 use App\Services\WorkTimerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +25,12 @@ class TaskController extends Controller
 
     public function index(Request $request): View
     {
+        abort_unless(! $request->filled('status') || in_array($request->status, TaskWorkflowService::STATUSES, true), 404);
+        abort_unless(! $request->filled('priority') || in_array($request->priority, TaskWorkflowService::PRIORITIES, true), 404);
+        abort_unless(! $request->filled('due') || in_array($request->due, ['today', 'overdue', 'upcoming'], true), 404);
         $this->authorizeFilters($request);
+
+        $baseQuery = Task::where('company_id', $this->companyId())->where('assignee_id', auth()->id());
 
         $tasks = Task::with('project')
             ->where('company_id', $this->companyId())
@@ -33,6 +41,7 @@ class TaskController extends Controller
             ->when($request->priority, fn ($query, $priority) => $query->where('priority', $priority))
             ->when($request->due === 'today', fn ($query) => $query->whereDate('due_date', today()))
             ->when($request->due === 'overdue', fn ($query) => $query->whereDate('due_date', '<', today())->whereNotIn('status', ['completed', 'cancelled']))
+            ->when($request->due === 'upcoming', fn ($query) => $query->whereDate('due_date', '>=', today())->whereDate('due_date', '<=', today()->addDays(7))->whereNotIn('status', ['completed', 'cancelled']))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -40,6 +49,14 @@ class TaskController extends Controller
         return view('employee.tasks.index', [
             'tasks' => $tasks,
             'projects' => Project::where('company_id', $this->companyId())->whereHas('tasks', fn ($query) => $query->where('assignee_id', auth()->id()))->orderBy('name')->get(),
+            'summary' => [
+                'todo' => (clone $baseQuery)->whereIn('status', TaskWorkflowService::GROUPS['todo'])->count(),
+                'in_progress' => (clone $baseQuery)->whereIn('status', TaskWorkflowService::GROUPS['in_progress'])->count(),
+                'review' => (clone $baseQuery)->whereIn('status', TaskWorkflowService::GROUPS['review'])->count(),
+                'overdue' => (clone $baseQuery)->whereDate('due_date', '<', today())->whereNotIn('status', TaskWorkflowService::TERMINAL_STATUSES)->count(),
+            ],
+            'statuses' => TaskWorkflowService::STATUSES,
+            'priorities' => TaskWorkflowService::PRIORITIES,
         ]);
     }
 
@@ -49,8 +66,11 @@ class TaskController extends Controller
         $logger->record('viewed', 'Task viewed by employee.', auth()->user(), $task, $this->companyId(), request: request());
 
         return view('employee.tasks.show', [
-            'task' => $task->load(['project', 'assignee', 'comments.user', 'files.uploader', 'workSessions' => fn ($query) => $query->where('user_id', auth()->id())->latest()]),
+            'task' => $task->load(['project', 'assignee', 'creator', 'comments.user', 'files.uploader', 'workSessions' => fn ($query) => $query->where('user_id', auth()->id())->latest()]),
             'activeTimer' => $this->activeTimer(),
+            'availableTransitions' => app(TaskWorkflowService::class)->availableTransitions($task, auth()->user()),
+            'totalHours' => round($task->workSessions()->where('user_id', auth()->id())->sum('duration_minutes') / 60, 2),
+            'workflow' => app(TaskWorkflowService::class),
         ]);
     }
 
@@ -96,29 +116,25 @@ class TaskController extends Controller
         return back()->with('success', 'Task progress updated.');
     }
 
-    public function status(Task $task, Request $request, AuditLogger $logger): RedirectResponse
+    public function status(Task $task, Request $request, AuditLogger $logger, ProjectProgressService $progress, TaskNotificationService $notifications, TaskWorkflowService $workflow): RedirectResponse
     {
         $this->abortUnlessOwnTask($task);
         $data = $request->validate([
             'status' => ['required', 'in:in_progress,paused,blocked,submitted'],
             'blocked_reason' => ['nullable', 'required_if:status,blocked', 'string', 'max:1000'],
         ]);
-        abort_if(in_array($task->status, ['completed', 'cancelled'], true), 403);
-        $allowed = [
-            'assigned' => ['in_progress'],
-            'todo' => ['in_progress'],
-            'in_progress' => ['paused', 'blocked', 'submitted'],
-            'paused' => ['in_progress'],
-            'blocked' => ['in_progress'],
-            'under_review' => ['in_progress'],
-        ];
-        abort_unless(in_array($data['status'], $allowed[$task->status] ?? [], true), 422);
+        abort_unless($workflow->canTransition($task, $data['status'], auth()->user()), 422);
         $task->update([
             'status' => $data['status'],
             'progress' => $data['status'] === 'submitted' ? 100 : $task->progress,
             'blocked_reason' => $data['blocked_reason'] ?? null,
         ]);
+        $progress->sync($task->project);
         $logger->record('status_updated', 'Task status updated to '.$data['status'].'.', auth()->user(), $task, $this->companyId(), request: $request);
+
+        if ($data['status'] === 'submitted') {
+            $notifications->submitted($task);
+        }
 
         return back()->with('success', 'Task status updated.');
     }

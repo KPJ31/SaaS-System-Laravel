@@ -4,7 +4,14 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Client;
 use App\Models\Company;
+use App\Models\Payment;
+use App\Models\Project;
+use App\Models\SubscriptionChangeRequest;
+use App\Models\SystemSetting;
+use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,11 +22,20 @@ class CompanyController extends Controller
     public function index(Request $request): View
     {
         return view('super-admin.companies.index', [
-            'companies' => Company::with(['activeSubscription.plan', 'users'])
+            'companies' => Company::with([
+                'activeSubscription.plan',
+                'users' => fn ($query) => $query->where('role', 'company_admin')->select('id', 'company_id', 'name', 'email'),
+            ])
                 ->withCount(['users', 'projects'])
                 ->when($request->filled('search'), fn ($query) => $query->where(function ($inner) use ($request): void {
                     $inner->where('name', 'like', '%'.$request->search.'%')
-                        ->orWhere('email', 'like', '%'.$request->search.'%');
+                        ->orWhere('email', 'like', '%'.$request->search.'%')
+                        ->orWhereHas('users', fn ($users) => $users
+                            ->where('role', 'company_admin')
+                            ->where(function ($admin) use ($request): void {
+                                $admin->where('name', 'like', '%'.$request->search.'%')
+                                    ->orWhere('email', 'like', '%'.$request->search.'%');
+                            }));
                 }))
                 ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
                 ->when($request->filled('from'), fn ($query) => $query->whereDate('created_at', '>=', $request->from))
@@ -33,10 +49,45 @@ class CompanyController extends Controller
 
     public function show(Company $company): View
     {
+        $company->load([
+            'activeSubscription.plan',
+            'setting',
+        ])->loadCount([
+            'users',
+            'clients',
+            'projects',
+            'tasks',
+            'subscriptions',
+        ]);
+
+        $companyAdmin = User::where('company_id', $company->id)
+            ->where('role', 'company_admin')
+            ->first();
+
         return view('super-admin.companies.show', [
-            'company' => $company->load(['users', 'activeSubscription.plan', 'subscriptions.plan', 'payments', 'setting']),
-            'companyAdmin' => $company->users()->where('role', 'company_admin')->first(),
-            'recentActivities' => AuditLog::with('user')->where('company_id', $company->id)->latest()->take(8)->get(),
+            'company' => $company,
+            'companyAdmin' => $companyAdmin,
+            'currency' => (string) SystemSetting::getValue('currency', 'USD'),
+            'paymentTotal' => Payment::where('company_id', $company->id)->where('payment_type', 'subscription')->whereIn('status', ['verified', 'received', 'paid'])->sum('amount'),
+            'users' => User::where('company_id', $company->id)->latest()->paginate(8, ['*'], 'users_page')->withQueryString(),
+            'projects' => Project::with('client')->where('company_id', $company->id)->latest()->paginate(8, ['*'], 'projects_page')->withQueryString(),
+            'subscriptions' => $company->subscriptions()->with('plan')->latest()->paginate(6, ['*'], 'subscriptions_page')->withQueryString(),
+            'payments' => Payment::with(['subscriptionPlan', 'project', 'client'])
+                ->where('company_id', $company->id)
+                ->where('payment_type', 'subscription')
+                ->latest()
+                ->paginate(8, ['*'], 'payments_page')
+                ->withQueryString(),
+            'recentActivities' => AuditLog::with('user')->where('company_id', $company->id)->latest()->paginate(10, ['*'], 'activity_page')->withQueryString(),
+            'latestChangeRequest' => SubscriptionChangeRequest::with(['requestedPlan', 'reviewer'])
+                ->where('company_id', $company->id)
+                ->latest()
+                ->first(),
+            'summary' => [
+                'clients' => Client::where('company_id', $company->id)->count(),
+                'open_projects' => Project::where('company_id', $company->id)->whereNotIn('status', ['completed', 'cancelled'])->count(),
+                'open_tasks' => Task::where('company_id', $company->id)->whereNotIn('status', ['completed', 'cancelled'])->count(),
+            ],
         ]);
     }
 

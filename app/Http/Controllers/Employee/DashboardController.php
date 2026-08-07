@@ -36,7 +36,6 @@ class DashboardController extends Controller
         $statusCounts = (clone $tasksQuery)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
         $totalTasks = (clone $tasksQuery)->count();
         $completedTasks = (clone $tasksQuery)->where('status', 'completed')->count();
-        $score = $totalTasks > 0 ? (int) round(($completedTasks / $totalTasks) * 40 + min(30, ((clone $sessionsQuery)->whereNotNull('ended_at')->count() / max(1, now()->day)) * 30) + 20) : null;
         $setting = CompanySetting::firstOrCreate(
             ['company_id' => $user->company_id],
             ['timezone' => $user->company?->timezone ?? 'UTC', 'currency' => 'USD', 'settings' => []]
@@ -62,7 +61,7 @@ class DashboardController extends Controller
                 'monthHours' => round((clone $sessionsQuery)->whereMonth('started_at', now()->month)->whereYear('started_at', now()->year)->sum('duration_minutes') / 60, 2),
                 'pendingLeaves' => LeaveRequest::where('company_id', $user->company_id)->where('user_id', $user->id)->where('status', 'pending')->count(),
                 'approvedLeaves' => LeaveRequest::where('company_id', $user->company_id)->where('user_id', $user->id)->where('status', 'approved')->count(),
-                'performanceScore' => $score,
+                'completionRate' => $totalTasks > 0 ? (int) round(($completedTasks / $totalTasks) * 100) : null,
                 'companyTotalProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->count() : null,
                 'companyActiveProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->whereIn('status', ['active', 'in_progress', 'testing'])->count() : null,
                 'companyCompletedProjects' => $user->can('projects.view') ? Project::where('company_id', $user->company_id)->where('status', 'completed')->count() : null,

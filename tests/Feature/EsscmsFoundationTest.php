@@ -43,8 +43,15 @@ function makeCompany(array $attributes = []): Company
 test('landing page is available', function () {
     $this->get('/')
         ->assertOk()
-        ->assertSee('Run your software company with')
-        ->assertSee('Everything your software company needs in one platform.');
+        ->assertSee('Run your software company from one connected workspace.')
+        ->assertSee('Core capabilities for software company operations.');
+});
+
+test('public informational pages are available', function () {
+    $this->get(route('about'))->assertOk()->assertSee('About Elevanix');
+    $this->get(route('contact'))->assertOk()->assertSee('Contact Elevanix');
+    $this->get(route('privacy'))->assertOk()->assertSee('Privacy Policy');
+    $this->get(route('terms'))->assertOk()->assertSee('Terms and Conditions');
 });
 
 test('user can login with email', function () {
@@ -92,7 +99,7 @@ test('inactive user cannot login', function () {
 test('password reset request page is available', function () {
     $this->get(route('password.request'))
         ->assertOk()
-        ->assertSee('Reset your password');
+        ->assertSee('Forgot your password?');
 });
 
 test('new password page is available with token', function () {

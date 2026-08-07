@@ -5,6 +5,7 @@ use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\LeaveRequest;
 use App\Models\Payment;
+use App\Models\PersonalTodo;
 use App\Models\Project;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
@@ -12,7 +13,10 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkFile;
 use App\Models\WorkSession;
+use App\Notifications\TaskNotification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 
 function employeeTestCompany(array $attributes = []): Company
 {
@@ -99,6 +103,80 @@ test('employee can login and access dashboard', function () {
     $this->actingAs($employee)->get(route('employee.dashboard'))->assertOk()->assertSee('My Workspace');
 });
 
+test('employee profile updates only allowed personal fields', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('profile-images/existing.png', 'avatar');
+    $employee = employeeTestUser([
+        'avatar' => 'profile-images/existing.png',
+        'employee_code' => 'EMP-001',
+        'job_title' => 'Developer',
+        'department' => 'Engineering',
+    ]);
+    $originalCompanyId = $employee->company_id;
+    $otherCompany = employeeTestCompany();
+
+    $this->actingAs($employee)
+        ->put(route('employee.profile.update'), [
+            'name' => 'Updated Employee',
+            'username' => 'updated-employee',
+            'email' => 'updated-employee@example.test',
+            'phone' => '555-3030',
+            'address' => 'Updated address',
+            'role' => 'company_admin',
+            'company_id' => $otherCompany->id,
+            'status' => 'suspended',
+            'job_title' => 'Forged Manager',
+            'department' => 'Forged Department',
+            'employee_code' => 'FORGED',
+            'remove_avatar' => '1',
+        ])
+        ->assertRedirect();
+
+    $employee->refresh();
+
+    expect($employee->name)->toBe('Updated Employee')
+        ->and($employee->email)->toBe('updated-employee@example.test')
+        ->and($employee->role)->toBe('employee')
+        ->and($employee->company_id)->toBe($originalCompanyId)
+        ->and($employee->status)->toBe('active')
+        ->and($employee->job_title)->toBe('Developer')
+        ->and($employee->department)->toBe('Engineering')
+        ->and($employee->employee_code)->toBe('EMP-001')
+        ->and($employee->avatar)->toBeNull();
+
+    Storage::disk('public')->assertMissing('profile-images/existing.png');
+});
+
+test('employee password change requires current password and clears must change flag', function () {
+    $employee = employeeTestUser(['must_change_password' => true]);
+    $oldHash = $employee->password;
+
+    $this->actingAs($employee)
+        ->from(route('employee.password.edit'))
+        ->put(route('employee.password.update'), [
+            'current_password' => 'wrong-password',
+            'password' => 'NewPassword@123',
+            'password_confirmation' => 'NewPassword@123',
+        ])
+        ->assertRedirect(route('employee.password.edit'))
+        ->assertSessionHasErrors('current_password');
+
+    expect($employee->fresh()->password)->toBe($oldHash);
+
+    $this->actingAs($employee)
+        ->put(route('employee.password.update'), [
+            'current_password' => 'Password@123',
+            'password' => 'NewPassword@123',
+            'password_confirmation' => 'NewPassword@123',
+        ])
+        ->assertRedirect();
+
+    $employee->refresh();
+
+    expect(Hash::check('NewPassword@123', $employee->password))->toBeTrue()
+        ->and($employee->must_change_password)->toBeFalse();
+});
+
 test('employee cannot access admin areas', function () {
     $employee = employeeTestUser();
 
@@ -123,6 +201,86 @@ test('employee dashboard project stats ignore cross-company pivot assignments', 
         ->assertOk()
         ->assertSeeInOrder(['Projects', '<strong>0</strong>'], false)
         ->assertSeeInOrder(['Active Projects', '<strong>0</strong>'], false);
+});
+
+test('employee project list includes assigned projects and excludes unassigned projects', function () {
+    $employee = employeeTestUser();
+    $assignedProject = Project::create([
+        'company_id' => $employee->company_id,
+        'name' => 'Visible Assigned Project',
+        'status' => 'active',
+        'priority' => 'medium',
+    ]);
+    $assignedProject->users()->attach($employee->id);
+
+    Project::create([
+        'company_id' => $employee->company_id,
+        'name' => 'Hidden Unassigned Project',
+        'status' => 'active',
+        'priority' => 'medium',
+    ]);
+
+    $this->actingAs($employee)
+        ->get(route('employee.projects.index'))
+        ->assertOk()
+        ->assertSee('Visible Assigned Project')
+        ->assertDontSee('Hidden Unassigned Project');
+});
+
+test('employee cannot view unassigned project in own company', function () {
+    $employee = employeeTestUser();
+    $project = Project::create([
+        'company_id' => $employee->company_id,
+        'name' => 'Hidden Own Company Project',
+        'status' => 'active',
+        'priority' => 'medium',
+    ]);
+
+    $this->actingAs($employee)
+        ->get(route('employee.projects.show', $project))
+        ->assertForbidden();
+});
+
+test('employee can view project through assigned task', function () {
+    $employee = employeeTestUser();
+    $task = employeeTestTask($employee, ['title' => 'Project Access Task']);
+
+    $this->actingAs($employee)
+        ->get(route('employee.projects.show', $task->project))
+        ->assertOk()
+        ->assertSee('Project Access Task');
+});
+
+test('employee project workspace only shows downloadable files', function () {
+    $employee = employeeTestUser();
+    $task = employeeTestTask($employee);
+    $other = User::factory()->create(['company_id' => $employee->company_id, 'role' => 'employee', 'status' => 'active']);
+
+    WorkFile::create([
+        'company_id' => $employee->company_id,
+        'project_id' => $task->project_id,
+        'task_id' => $task->id,
+        'uploaded_by' => $other->id,
+        'original_name' => 'visible-task-file.pdf',
+        'path' => 'work-files/'.$employee->company_id.'/visible-task-file.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 10,
+    ]);
+    WorkFile::create([
+        'company_id' => $employee->company_id,
+        'project_id' => $task->project_id,
+        'uploaded_by' => $other->id,
+        'original_name' => 'hidden-project-file.pdf',
+        'path' => 'work-files/'.$employee->company_id.'/hidden-project-file.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 10,
+    ]);
+
+    $this->actingAs($employee)
+        ->get(route('employee.projects.show', $task->project))
+        ->assertOk()
+        ->assertSee('visible-task-file.pdf')
+        ->assertDontSee('hidden-project-file.pdf');
 });
 
 test('employee only sees own tasks', function () {
@@ -288,6 +446,23 @@ test('employee checkout can calculate half day and early departure', function ()
         ->and($attendance->is_early_departure)->toBeTrue();
 });
 
+test('attendance service calculates late lunch and early departure consistently', function () {
+    $settings = app(\App\Services\AttendanceService::class)->settingsForCompany(employeeTestUser()->company_id);
+    $summary = app(\App\Services\AttendanceService::class)->calculateSummary(
+        \Carbon\Carbon::parse('2026-08-03 08:45:00', $settings['timezone']),
+        \Carbon\Carbon::parse('2026-08-03 16:30:00', $settings['timezone']),
+        $settings
+    );
+
+    expect((int) $summary['gross_minutes'])->toBe(465)
+        ->and((int) $summary['lunch_break_minutes'])->toBe(30)
+        ->and((int) $summary['net_work_minutes'])->toBe(435)
+        ->and($summary['status'])->toBe('half_day')
+        ->and($summary['is_late'])->toBeTrue()
+        ->and((int) $summary['late_minutes'])->toBe(15)
+        ->and($summary['is_early_departure'])->toBeTrue();
+});
+
 test('employee cannot check out before checking in', function () {
     $employee = employeeTestUser();
 
@@ -317,11 +492,121 @@ test('suspended employee cannot check in', function () {
 });
 
 test('employee submits task for review', function () {
+    Notification::fake();
     $employee = employeeTestUser();
+    $admin = User::factory()->create(['company_id' => $employee->company_id, 'role' => 'company_admin', 'status' => 'active']);
     $task = employeeTestTask($employee, ['status' => 'in_progress', 'progress' => 75]);
 
     $this->actingAs($employee)->patch(route('employee.tasks.status', $task), ['status' => 'submitted'])->assertRedirect();
     $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => 'submitted', 'progress' => 100]);
+    Notification::assertSentTo($admin, TaskNotification::class);
+});
+
+test('employee cannot complete task directly', function () {
+    $employee = employeeTestUser();
+    $task = employeeTestTask($employee, ['status' => 'submitted', 'progress' => 100]);
+
+    $this->actingAs($employee)
+        ->patch(route('employee.tasks.status', $task), ['status' => 'completed'])
+        ->assertSessionHasErrors('status');
+
+    expect($task->fresh()->status)->toBe('submitted');
+});
+
+test('employee valid task transitions follow workflow', function () {
+    $employee = employeeTestUser();
+    $task = employeeTestTask($employee, ['status' => 'assigned', 'progress' => 0]);
+
+    $this->actingAs($employee)
+        ->patch(route('employee.tasks.status', $task), ['status' => 'in_progress'])
+        ->assertRedirect();
+    expect($task->fresh()->status)->toBe('in_progress');
+
+    $this->actingAs($employee)
+        ->patch(route('employee.tasks.status', $task->fresh()), ['status' => 'blocked', 'blocked_reason' => 'Waiting for credentials.'])
+        ->assertRedirect();
+    expect($task->fresh()->status)->toBe('blocked');
+
+    $this->actingAs($employee)
+        ->patch(route('employee.tasks.status', $task->fresh()), ['status' => 'in_progress'])
+        ->assertRedirect();
+    expect($task->fresh()->status)->toBe('in_progress');
+});
+
+test('employee cannot comment on another employees task', function () {
+    $employee = employeeTestUser();
+    $other = User::factory()->create(['company_id' => $employee->company_id, 'role' => 'employee', 'status' => 'active']);
+    $task = employeeTestTask($other);
+
+    $this->actingAs($employee)
+        ->post(route('employee.tasks.comments.store', $task), ['comment' => 'Not my task'])
+        ->assertForbidden();
+});
+
+test('employee comment author is server controlled', function () {
+    $employee = employeeTestUser();
+    $task = employeeTestTask($employee);
+    $other = User::factory()->create(['company_id' => $employee->company_id, 'role' => 'employee', 'status' => 'active']);
+
+    $this->actingAs($employee)
+        ->post(route('employee.tasks.comments.store', $task), [
+            'comment' => 'Server-owned author',
+            'user_id' => $other->id,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('task_comments', [
+        'task_id' => $task->id,
+        'user_id' => $employee->id,
+        'comment' => 'Server-owned author',
+    ]);
+});
+
+test('employee can manage own personal todo', function () {
+    $employee = employeeTestUser();
+
+    $this->actingAs($employee)
+        ->post(route('employee.todos.store'), [
+            'title' => 'Prepare daily notes',
+            'priority' => 'high',
+            'due_date' => now()->toDateString(),
+            'pinned' => 1,
+        ])
+        ->assertRedirect();
+
+    $todo = PersonalTodo::where('user_id', $employee->id)->firstOrFail();
+    expect($todo->company_id)->toBe($employee->company_id)
+        ->and($todo->pinned)->toBeTrue();
+
+    $this->actingAs($employee)
+        ->post(route('employee.todos.complete', $todo))
+        ->assertRedirect();
+
+    expect($todo->fresh()->status)->toBe('completed');
+});
+
+test('employee cannot access another users personal todo', function () {
+    $employee = employeeTestUser();
+    $other = User::factory()->create(['company_id' => $employee->company_id, 'role' => 'employee', 'status' => 'active']);
+    $todo = PersonalTodo::create([
+        'company_id' => $employee->company_id,
+        'user_id' => $other->id,
+        'title' => 'Other employee private todo',
+        'priority' => 'medium',
+        'status' => 'open',
+    ]);
+
+    $this->actingAs($employee)
+        ->patch(route('employee.todos.update', $todo), [
+            'title' => 'Forged todo update',
+            'priority' => 'medium',
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($employee)
+        ->get(route('employee.todos.index'))
+        ->assertOk()
+        ->assertDontSee('Other employee private todo');
 });
 
 test('employee creates leave request', function () {
@@ -342,7 +627,26 @@ test('employee views own performance', function () {
     employeeTestTask($employee, ['status' => 'completed', 'progress' => 100, 'completed_at' => now()]);
     WorkSession::create(['company_id' => $employee->company_id, 'user_id' => $employee->id, 'started_at' => now()->subHour(), 'ended_at' => now(), 'duration_minutes' => 60, 'status' => 'stopped']);
 
-    $this->actingAs($employee)->get(route('employee.performance.index'))->assertOk()->assertSee('Performance');
+    $this->actingAs($employee)->get(route('employee.performance.index'))->assertOk()->assertSee('My Work Summary');
+});
+
+test('employee personal work summary excludes colleague data', function () {
+    $employee = employeeTestUser();
+    $colleague = User::factory()->create(['company_id' => $employee->company_id, 'role' => 'employee', 'status' => 'active']);
+    $project = Project::create(['company_id' => $employee->company_id, 'name' => 'Personal Summary Project', 'status' => 'active', 'priority' => 'medium']);
+
+    employeeTestTask($employee, ['project_id' => $project->id, 'title' => 'Visible Personal Summary Task', 'status' => 'completed', 'progress' => 100, 'completed_at' => now()]);
+    employeeTestTask($colleague, ['project_id' => $project->id, 'title' => 'Hidden Colleague Summary Task', 'status' => 'completed', 'progress' => 100, 'completed_at' => now()]);
+    WorkSession::create(['company_id' => $employee->company_id, 'user_id' => $employee->id, 'project_id' => $project->id, 'started_at' => now()->subHours(2), 'ended_at' => now()->subHour(), 'duration_minutes' => 60, 'status' => 'stopped', 'notes' => 'Visible personal work note']);
+    WorkSession::create(['company_id' => $employee->company_id, 'user_id' => $colleague->id, 'project_id' => $project->id, 'started_at' => now()->subHours(2), 'ended_at' => now()->subHour(), 'duration_minutes' => 60, 'status' => 'stopped', 'notes' => 'Hidden colleague work note']);
+
+    $this->actingAs($employee)
+        ->get(route('employee.performance.index'))
+        ->assertOk()
+        ->assertSee('Visible Personal Summary Task')
+        ->assertSee('Visible personal work note')
+        ->assertDontSee('Hidden Colleague Summary Task')
+        ->assertDontSee('Hidden colleague work note');
 });
 
 test('employee work session csv export applies filters and stays personal', function () {
@@ -395,6 +699,76 @@ test('employee work session export protects spreadsheet formulas', function () {
 
     $response->assertOk();
     expect($response->streamedContent())->toContain("'=SUM");
+});
+
+test('employee can submit manual work log for assigned project task', function () {
+    $employee = employeeTestUser();
+    $task = employeeTestTask($employee);
+
+    $this->travelTo('2026-08-04 18:00:00');
+
+    $this->actingAs($employee)
+        ->post(route('employee.work-sessions.store'), [
+            'project_id' => $task->project_id,
+            'task_id' => $task->id,
+            'started_at' => '2026-08-04 09:00:00',
+            'ended_at' => '2026-08-04 10:30:00',
+            'notes' => 'Manual catch-up log',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('work_sessions', [
+        'company_id' => $employee->company_id,
+        'user_id' => $employee->id,
+        'task_id' => $task->id,
+        'duration_minutes' => 90,
+        'is_manual' => true,
+        'approval_status' => 'pending',
+    ]);
+});
+
+test('manual work log rejects task from a different selected project', function () {
+    $employee = employeeTestUser();
+    $first = employeeTestTask($employee);
+    $second = employeeTestTask($employee);
+
+    $this->travelTo('2026-08-04 18:00:00');
+
+    $this->actingAs($employee)
+        ->post(route('employee.work-sessions.store'), [
+            'project_id' => $first->project_id,
+            'task_id' => $second->id,
+            'started_at' => '2026-08-04 09:00:00',
+            'ended_at' => '2026-08-04 10:30:00',
+        ])
+        ->assertSessionHasErrors('task_id');
+});
+
+test('manual work log cannot overlap existing session', function () {
+    $employee = employeeTestUser();
+    $task = employeeTestTask($employee);
+    WorkSession::create([
+        'company_id' => $employee->company_id,
+        'user_id' => $employee->id,
+        'project_id' => $task->project_id,
+        'task_id' => $task->id,
+        'started_at' => '2026-08-04 09:00:00',
+        'ended_at' => '2026-08-04 10:00:00',
+        'duration_minutes' => 60,
+        'status' => 'stopped',
+    ]);
+
+    $this->travelTo('2026-08-04 18:00:00');
+
+    $this->actingAs($employee)
+        ->post(route('employee.work-sessions.store'), [
+            'project_id' => $task->project_id,
+            'task_id' => $task->id,
+            'started_at' => '2026-08-04 09:30:00',
+            'ended_at' => '2026-08-04 10:30:00',
+        ])
+        ->assertSessionHasErrors('started_at');
 });
 
 test('employee attendance export protects spreadsheet formulas', function () {

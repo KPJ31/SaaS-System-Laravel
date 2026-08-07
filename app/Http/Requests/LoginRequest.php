@@ -10,6 +10,13 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'login' => Str::lower(trim((string) $this->input('login'))),
+        ]);
+    }
+
     public function rules(): array
     {
         return [

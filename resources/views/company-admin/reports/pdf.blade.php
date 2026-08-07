@@ -48,7 +48,7 @@
 <body>
     <h1>{{ $title }}</h1>
     <div class="meta">
-        {{ $company->name }} | Generated on {{ $generatedAt->format('M d, Y h:i A') }} | {{ $rows->count() }} records
+        {{ $company->name }} | {{ $from->format('Y-m-d') }} to {{ $to->format('Y-m-d') }} | Generated on {{ $generatedAt->format('M d, Y h:i A') }} | {{ $rows->count() }} records
         @if(! empty($filters))
             <br>Filters:
             @foreach($filters as $label => $value)
@@ -56,6 +56,17 @@
             @endforeach
         @endif
     </div>
+
+    @if(! empty($summary))
+        <table style="margin-bottom: 14px;">
+            <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+            <tbody>
+                @foreach($summary as $item)
+                    <tr><td>{{ $item['label'] }}</td><td>{{ $item['value'] }}</td></tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 
     <table>
         <thead>

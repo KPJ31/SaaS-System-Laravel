@@ -65,6 +65,11 @@ class Payment extends Model
         return $this->belongsTo(SubscriptionPlan::class);
     }
 
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
+    }
+
     public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');

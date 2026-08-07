@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
+use App\Models\SystemSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -43,6 +44,7 @@ class PaymentController extends Controller
             'totalRevenue' => (clone $verified)->sum('amount'),
             'monthlyRevenue' => (clone $verified)->whereMonth(DB::raw('COALESCE(paid_at, created_at)'), now()->month)->sum('amount'),
             'pendingRevenue' => Payment::where('payment_type', 'subscription')->whereIn('status', ['pending', 'submitted'])->sum('amount'),
+            'currency' => (string) SystemSetting::getValue('currency', 'USD'),
         ]);
     }
 
@@ -52,6 +54,7 @@ class PaymentController extends Controller
 
         return view('super-admin.payments.show', [
             'payment' => $payment->load(['company', 'subscription', 'subscriptionPlan', 'project', 'client', 'verifier']),
+            'currency' => (string) SystemSetting::getValue('currency', 'USD'),
         ]);
     }
 

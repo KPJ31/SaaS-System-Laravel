@@ -22,7 +22,7 @@ class PasswordController extends Controller
             'current_password' => ['required', 'current_password'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
-        auth()->user()->update(['password' => Hash::make($data['password'])]);
+        auth()->user()->update(['password' => Hash::make($data['password']), 'must_change_password' => false]);
 
         return back()->with('success', 'Password changed successfully.');
     }
